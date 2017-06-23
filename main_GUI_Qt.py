@@ -12,7 +12,8 @@ import numpy as np
 import calib_win, Rabbit_win
 import glob_var as cts
 
-'''The main object'''
+'''The main object
+comment'''
 class mainWin(QMainWindow):
 
     def __init__(self):
