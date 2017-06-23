@@ -146,7 +146,7 @@ class mainWin(QMainWindow):
         self.tab2.ehigh_le.setText("{:.2f}".format(cts.ehigh))
         self.tab2.dE_le.setText("{:.2f}".format(cts.dE))
 
-
+''' The object that popups when double-clicking on a "environnement" variable'''
 class varDialog(QDialog):
     def __init__(self, index, parent=mainWin):
         super(varDialog, self).__init__(parent)
