@@ -1,32 +1,52 @@
 import sys, os, traceback
-from PyQt5.QtCore import QRect, Qt
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QPushButton, QApplication, QGridLayout, QHBoxLayout, QVBoxLayout, QGroupBox, QLabel
-from PyQt5.QtWidgets import QLineEdit, QCheckBox, QComboBox, QRadioButton, QButtonGroup, QFileDialog, QDialog, \
-    QTableWidget
-from PyQt5.QtWidgets import QTableWidgetItem, QTableView, QLayout, QSlider
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, FigureCanvas, NavigationToolbar2QT
+from PyQt5.QtWidgets import QLineEdit, QCheckBox, QRadioButton, QButtonGroup, QFileDialog, QDialog, QTableWidget
+from PyQt5.QtWidgets import QTableWidgetItem, QTableView
+from matplotlib.backends.backend_qt5agg import FigureCanvas, NavigationToolbar2QT
 from matplotlib.figure import Figure
 from glob import glob
 import numpy as np
 from scipy import optimize as opt
-from scipy import interpolate
-from matplotlib.ticker import FormatStrFormatter
 
 # Homemade modules
 import glob_var as cts
 import analysis_functions as af
 import other_widgets as ow
 
-
 class RabbitWin(QWidget):
-    def __init__(self, parent=None):
+    """ Rabbit window
+
+        For the names of the children widgets, I tried to put suffixes that indicate clearly their types:
+        *_btn -> QPushButton,
+        *_le -> QLineEdit,
+        *_lb -> QLabel,
+        *layout -> QHBoxLayout, QVBoxLayout or QGridLayout,
+        *_box -> QGroupBox,
+        *_cb -> QCheckBox,
+        *_rb -> QRadioButton
+
+        The functions that are connected to a widget's event have the suffix _lr (for 'listener'). For example,
+        a button named test_btn will be connected to a function test_lr.
+        Some functions may be connected to widgets but without the suffix _lr in their names. It means that they
+        are not only called when interacting with the widget.
+        """
+    def __init__(self, parent=None) -> None:
+        """Initialization of the window
+
+                the main layout is called mainLayout. It is divided in two:
+                    - graphLayout: the left part, contains all the figures
+                    - commandLayout: the right part, contains all the buttons, fields, checkboxes...
+                Both graphLayout and commandLayout are divided into sub-layouts.
+
+                This function calls several functions to initialize each part of the window.
+                The name of these functions has the shape 'init_*layout'."""
         super(RabbitWin, self).__init__(parent=parent)
-        # self.setGeometry(300, 300, 1000, 600)
         self.setWindowTitle("RABBIT")
         self.mainlayout = QHBoxLayout()
         self.graphlayout = QVBoxLayout()
-        self.commandlayout = QVBoxLayout()
-        self.commandlayout.setSpacing(10)
+        self.commandLayout = QVBoxLayout()
+        self.commandLayout.setSpacing(10)
 
         self.init_var()
         self.init_importlayout()
@@ -38,16 +58,18 @@ class RabbitWin(QWidget):
         self.init_graphlayout()
 
         self.mainlayout.addLayout(self.graphlayout)
-        self.mainlayout.addLayout(self.commandlayout)
+        self.mainlayout.addLayout(self.commandLayout)
         self.setLayout(self.mainlayout)
         self.show()
 
-    def init_var(self):
+    ''' Initialization of instance attributes'''
+    def init_var(self) -> None:
         self.dataloaded = False
         self.xuvonlyloaded = False
         self.bandselected = False
 
-    def init_importlayout(self):
+    ''' In commandLayout - Initialization of the "Import" section'''
+    def init_importlayout(self) -> None:
         Importlayout = QGridLayout()
         Importlayout.setSpacing(10)
 
@@ -74,7 +96,7 @@ class RabbitWin(QWidget):
         Importlayout.addWidget(self.importrab_btn, 1, 2)
 
         Import_box.setLayout(Importlayout)
-        self.commandlayout.addWidget(Import_box)
+        self.commandLayout.addWidget(Import_box)
 
         for widget in Import_box.children():
             if isinstance(widget, QPushButton):
@@ -83,7 +105,8 @@ class RabbitWin(QWidget):
         self.importcalib_btn.setEnabled(True)
         self.importrabparam_btn.setEnabled(True)
 
-    def init_envectlayout(self):
+    ''' In commandLayout - Initialization of the energy vector section, with elow, ehigh and dE'''
+    def init_envectlayout(self) -> None:
         paramlayout = QHBoxLayout()
         envectlayout = QGridLayout()
         envectlayout.setSpacing(10)
@@ -130,9 +153,10 @@ class RabbitWin(QWidget):
 
         paramlayout.addLayout(scanparamlayout)
 
-        self.commandlayout.addLayout(paramlayout)
+        self.commandLayout.addLayout(paramlayout)
 
-    def init_sigtreatmentlayout(self):
+    ''' In commandLayout - Initialization of the "Signal Treatment" section'''
+    def init_sigtreatmentlayout(self) -> None:
         cts.bandsnb = 5
         sigtreatment_box = QGroupBox("Signal Treatment", self)
         sigtreatmentlayout = QGridLayout()
@@ -168,9 +192,10 @@ class RabbitWin(QWidget):
             if isinstance(widget, QLineEdit):
                 widget.setFixedSize(55, 20)
 
-        self.commandlayout.addWidget(sigtreatment_box)
+        self.commandLayout.addWidget(sigtreatment_box)
 
-    def init_rabbitlayout(self):
+    ''' In commandLayout - Initialization of the "RABBIT" section'''
+    def init_rabbitlayout(self) -> None:
         rabbitlayout = QGridLayout()
         rabbit_box = QGroupBox("RABBIT", self)
         rabbit_box.setFixedSize(300, 60)
@@ -194,9 +219,10 @@ class RabbitWin(QWidget):
                 widget.setSizePolicy(0, 0)
                 widget.setEnabled(False)
 
-        self.commandlayout.addWidget(rabbit_box)
+        self.commandLayout.addWidget(rabbit_box)
 
-    def init_exportlayout(self):
+    ''' In commandLayout - Initialization of the "Export" section'''
+    def init_exportlayout(self) -> None:
         exportlayout = QGridLayout()
         export_box = QGroupBox("Export", self)
         export_box.setFixedSize(300, 60)
@@ -213,9 +239,10 @@ class RabbitWin(QWidget):
             if isinstance(widget, QPushButton):
                 widget.setSizePolicy(0, 0)
                 widget.setEnabled(False)
-        self.commandlayout.addWidget(export_box)
+        self.commandLayout.addWidget(export_box)
 
-    def init_plotbtnlayout(self):
+    ''' In commandLayout - Initialization of the "Plot" section'''
+    def init_plotbtnlayout(self) -> None:
         plotbtnlayout = QGridLayout()
         plotbtn_box = QGroupBox("Plot", self)
         plotbtn_box.setFixedSize(300, 60)
@@ -231,19 +258,19 @@ class RabbitWin(QWidget):
             if isinstance(widget, QPushButton):
                 widget.setSizePolicy(0, 0)
                 widget.setEnabled(False)
-        self.commandlayout.addWidget(plotbtn_box)
+        self.commandLayout.addWidget(plotbtn_box)
 
-    def init_graphlayout(self):
-        self.rab_widget = ow.plot3DWidget(self)
-
+    ''' In graphLayout - Initialization of the 3 figures'''
+    def init_graphlayout(self) -> None:
+        self.rab_widget = ow.plot3DWidget(self) # new class defined in other_widgets.py
         self.rab_widget.xlabel = "E (eV)"
         self.rab_widget.ylabel = "t (fs)"
 
         self.graphlayout.addWidget(self.rab_widget)
 
         self.phaseFTlayout = QHBoxLayout()
-
         self.phaselayout = QVBoxLayout()
+
         phase_fig = Figure(figsize=(2, 2), dpi=100)
         self.phase_fc = FigureCanvas(phase_fig)
         self.phase_fc.setSizePolicy(1, 0)
@@ -266,11 +293,9 @@ class RabbitWin(QWidget):
 
         self.graphlayout.addLayout(self.phaseFTlayout)
 
-    def importcalib_lr(self):
-        """From a calibration file, loads afit, t0fit, cfit and the first harmonic
-        :argument: None
-        :return: None
-        """
+    ''' From a calibration file, loading afit, t0fit, cfit and the first harmonic'''
+    def importcalib_lr(self) -> None:
+
         calib_fname = QFileDialog.getOpenFileName(self, 'Import calibration')
         calib_f = calib_fname[0]
         if (calib_f):
@@ -289,7 +314,9 @@ class RabbitWin(QWidget):
                 except ValueError:
                     print("Incorrect calibration data")
 
-    def importdata_lr(self):
+    ''' "Import data" listener. Loads all the tof files, one by one, converts them to energy and regroup them into the
+    cts.rabbit_mat array'''
+    def importdata_lr(self) -> None:
         data_f = QFileDialog.getOpenFileName(self, 'Import data')
         data_filename = data_f[0]
 
@@ -341,7 +368,8 @@ class RabbitWin(QWidget):
             else:
                 self.window().statusBar().showMessage("Incorrect directory")
 
-    def importrabparam_lr(self):
+    ''' "Import RABBIT param" button listener. Loads RABBIT parameters from file'''
+    def importrabparam_lr(self) -> None:
         rabp_fname = QFileDialog.getOpenFileName(self, 'Import RABBIT parameters')
         rabp_f = rabp_fname[0]
         if (rabp_f):
@@ -365,7 +393,8 @@ class RabbitWin(QWidget):
             except ValueError:
                 self.window().statusBar().showMessage("Incorrect RABBIT parameters file")
 
-    def importrab_lr(self):
+    ''' "Import Rabbit" button listener. Loads RABBIT trace from file'''
+    def importrab_lr(self) -> None:
         rab_fname = QFileDialog.getOpenFileName(self, 'Import RABBIT counts')
         rab_f = rab_fname[0]
         if (rab_f):
@@ -391,7 +420,8 @@ class RabbitWin(QWidget):
             except TypeError:
                 self.window().statusBar().showMessage("Incorrect RABBIT counts file")
 
-    def importXUV_lr(self):
+    ''' "Import XUV only" button listener. Loads XUV only from file (it is converted from tof to energy)'''
+    def importXUV_lr(self) -> None:
         self.update_envect_fn()
         xuv_fname = QFileDialog.getOpenFileName(self, "Import XUV only")
         xuv_f = xuv_fname[0]
@@ -413,7 +443,8 @@ class RabbitWin(QWidget):
             except ValueError:
                 self.window().statusBar().showMessage("Incorrect XUV only file")
 
-    def smoothrab_lr(self):
+    ''' "smooth RABBIT" button listener'''
+    def smoothrab_lr(self) -> None:
         try:
             sm = int(self.smooth_le.text())
             for i in range(cts.stepsnb):
@@ -431,7 +462,8 @@ class RabbitWin(QWidget):
         except ValueError:
             self.window().statusBar().showMessage("Smooth must be an integer")
 
-    def normalizerab_lr(self):
+    ''' "normalize RABBIT" button listener'''
+    def normalizerab_lr(self) -> None:
         for i in range(cts.stepsnb):
             cts.rabbit_mat[i, :] = cts.rabbit_mat[i, :] / cts.rabbit_mat[i, :].sum()
         self.rab_widget.colorauto_cb.setCheckState(Qt.Checked)
@@ -444,7 +476,8 @@ class RabbitWin(QWidget):
 
         self.rab_widget.refreshplot_fn(signal=cts.rabbit_mat)
 
-    def selectbands_lr(self):
+    ''' "select bands" button listener'''
+    def selectbands_lr(self) -> None:
         try:
             cts.bandsnb = int(self.bandsnb_le.text())
             cts.bands_vect = np.zeros([cts.bandsnb, 2])
@@ -454,22 +487,25 @@ class RabbitWin(QWidget):
             self.FTcontrast_btn.setEnabled(False)
             self.plotSBvsdelay_btn.setEnabled(False)
             self.window().updateglobvar_fn()
-            nw = selectBandsWin(self)
+            nw = selectBandsWin(self) # new class defined below
         except ValueError:
             self.window().statusBar().showMessage("Number of bands must be an integer")
 
-    def bandsnb_lr(self):
+    ''' called when pressing enter in the bandsnb_le object'''
+    def bandsnb_lr(self) -> None:
         try:
             cts.bandsnb = int(self.bandsnb_le.text())
             self.window().updateglobvar_fn()
         except ValueError:
             self.window().statusBar().showMessage("Number of bands must be an integer")
 
-    def subXUV_lr(self):
+    ''' "substract XUV" button listener. Opens a new window'''
+    def subXUV_lr(self) -> None:
         cts.xuvsubstracted = False
-        sw = subXUVWin(self)
+        sw = subXUVWin(self) # new class defined below
 
-    def normalrab_lr(self):
+    '''ANALYSIS - "Normal RABBIT" button listener'''
+    def normalrab_lr(self) -> None:
         try:
             cts.rabbitmode = "normal"
             self.FT_ax.cla()
@@ -554,7 +590,8 @@ class RabbitWin(QWidget):
         except:
             print(traceback.format_exception(*sys.exc_info()))
 
-    def rainbowrab_lr(self):
+    '''ANALYSIS - "Rainbow RABBIT" button listener'''
+    def rainbowrab_lr(self) -> None:
         try:
             cts.rabbitmode = "rainbow"
             hnu = cts.HEV * cts.cur_nu
@@ -642,19 +679,22 @@ class RabbitWin(QWidget):
         except Exception:
             print(traceback.format_exception(*sys.exc_info()))
 
-    def FTcontrast_lr(self):
+    ''' "FT/contrast" button listener. Opens a new window'''
+    def FTcontrast_lr(self) -> None:
         try:
-            w = FTContrastWin(self)
+            w = FTContrastWin(self) # new class defined below
         except Exception:
             print(traceback.format_exception(*sys.exc_info()))
 
-    def plotSBvsdelay_lr(self):
+    ''' "SB vs delay" button listener. Opens a new window'''
+    def plotSBvsdelay_lr(self) -> None:
         try:
-            w = SBvsDelayWin(self)
+            w = SBvsDelayWin(self) # new class defined below
         except Exception:
             print(traceback.format_exception(*sys.exc_info()))
 
-    def update_scanparam(self):
+    ''' Updates the values of the scan steps, in nm and fs'''
+    def update_scanparam(self) -> None:
         try:
             cts.scanstep_nm = float(self.scanparam_le.text())
             cts.scanstep_fs = float(self.scanparam_le.text()) * 2 / (cts.C * 1e-6)
@@ -662,11 +702,9 @@ class RabbitWin(QWidget):
         except ValueError:
             print('Scan step must be a number')
 
-    def update_envect_fn(self):
-        """ Updates th energy vector parameters
-        :argument: None
-        :return: None
-        """
+    ''' Updates the energy vector parameters'''
+    def update_envect_fn(self) -> None:
+
         cts.elow = float(self.elow_le.text())
         cts.ehigh = float(self.ehigh_le.text())
         cts.dE = float(self.dE_le.text())
@@ -674,7 +712,9 @@ class RabbitWin(QWidget):
         self.ehigh_le.setText("{:.2f}".format(cts.ehigh))
         self.window().updateglobvar_fn()
 
-    def exportrab_lr(self):
+    ''' "Export RABBIT" btn listener. Saves the rabbit in two files: *_counts for the data and *_param for 
+    the parameters'''
+    def exportrab_lr(self) -> None:
         rab_fname = QFileDialog.getSaveFileName(self)
         rab_f = rab_fname[0]
         try:
@@ -686,7 +726,8 @@ class RabbitWin(QWidget):
         except Exception:
             print(traceback.format_exception(*sys.exc_info()))
 
-    def reset_btn(self):
+    ''' "Reset" button listener. Resets the widgets, not the variables'''
+    def reset_btn(self) -> None:
         self.importXUV_btn.setEnabled(False)
         self.importdata_btn.setEnabled(False)
         self.importrab_btn.setEnabled(False)
@@ -711,14 +752,14 @@ class selectBandsWin(QDialog):
         self.setGeometry(100, 100, 1000, 800)
         self.setWindowFlags(Qt.Window)
 
-        win = selectBandsPlotWin(self)
+        win = selectBandsPlotWin(self) # new class defined below
         self.layout.addWidget(win)
 
         self.setLayout(self.layout)
         self.show()
 
 class selectBandsPlotWin(ow.plot3DWidget):
-    def __init__(self, parent):
+    def __init__(self, parent) -> None:
         super(selectBandsPlotWin, self).__init__(parent)
 
         self.init_vars()
@@ -734,14 +775,14 @@ class selectBandsPlotWin(ow.plot3DWidget):
 
         self.show()
 
-    def init_vars(self):
+    def init_vars(self) -> None:
         self.clickcount = 0
         self.x = cts.energy_vect
         self.y = cts.delay_vect
         self.signal = cts.rabbit_mat
         self.value = 25
 
-    def init_layout(self):
+    def init_layout(self) -> None:
         self.paramlayout = QHBoxLayout()
 
         self.color_bg = QButtonGroup(self)
@@ -801,18 +842,16 @@ class selectBandsPlotWin(ow.plot3DWidget):
         self.optionslayout.addLayout(self.paramlayout)
         self.setLayout(self.mainlayout)
         self.mainlayout.setContentsMargins(10, 10, 10, 10)
-
-
     # Here I override a method in QDialog that closes the Dialog on pressing return or enter
     # It is willingly empty to avoid closing the window when changing the threshold of the FT selection
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event) -> None:
         key = event.key()
 
-    def sbcolor_lr(self, value):
+    def sbcolor_lr(self, value) -> None:
         self.refreshplot_sb(value)
         self.value = value
 
-    def selectmode_lr(self):
+    def selectmode_lr(self) -> None:
         rb = self.sender()
         self.selectmode = rb.value
         if self.selectmode == "manual":
@@ -825,7 +864,7 @@ class selectBandsPlotWin(ow.plot3DWidget):
             self.FTselect_fn()
             self.done_btn.setEnabled(True)
 
-    def FTselect_fn(self):
+    def FTselect_fn(self) -> None:
         amp_threshold = float(self.FTthreshold_le.text())
         hnu = cts.HEV * cts.cur_nu
         self.SBi = cts.first_harm + 1
@@ -870,12 +909,13 @@ class selectBandsPlotWin(ow.plot3DWidget):
                 if (ampl[l] > amp_threshold * ampl.max() and dampl[l] < 0):
                     xi.append(l)
             # in this way, xi is probably messy but what import are the first and last values
+
             cts.bands_vect[i, 0] = cts.energy_vect[xi[0] + iemin]
             cts.bands_vect[i, 1] = cts.energy_vect[xi[-1] + iemin + 1]
 
         self.refreshplot_sb(value=self.value)
 
-    def onclick(self, event):
+    def onclick(self, event) -> None:
         if self.selectbands_cb.isChecked() and self.selectmode == "manual":
             if self.clickcount < 2 * cts.bandsnb:
                 if self.clickcount == 2 * cts.bandsnb - 1:
@@ -888,7 +928,7 @@ class selectBandsPlotWin(ow.plot3DWidget):
                 cts.bands_vect[k // 2, k % 2] = event.xdata
             self.refreshplot_sb(value=self.value)
 
-    def refreshplot_sb(self, value=25):
+    def refreshplot_sb(self, value=25) -> None:
         try:
             self.refreshplot_fn(value=value)
 
@@ -903,12 +943,12 @@ class selectBandsPlotWin(ow.plot3DWidget):
         except Exception:
             print(traceback.format_exception(*sys.exc_info()))
 
-    def color_lr(self):
+    def color_lr(self) -> None:
         rb = self.sender()
         self.color = rb.value
         self.refreshplot_sb(value=self.value)
 
-    def done_lr(self):
+    def done_lr(self) -> None:
         self.parent().parent().window().updateglobvar_fn()
         self.parent().parent().normalrab_btn.setEnabled(True)
         self.parent().parent().bandselected = True
@@ -922,7 +962,7 @@ class selectBandsPlotWin(ow.plot3DWidget):
             self.parent().parent().subXUV_btn.setEnabled(True)
         self.parent().destroy()
 
-    def cancel_lr(self):
+    def cancel_lr(self) -> None:
         cts.bands_vect = np.zeros([cts.bandsnb, 2])
         self.parent().parent().window().updateglobvar_fn()
         self.parent().parent().plotSBvsdelay_btn.setEnabled(False)
@@ -930,7 +970,7 @@ class selectBandsPlotWin(ow.plot3DWidget):
 
 #I define these classes here so the class RabbitWin doesn't have to be called from another module.
 class subXUVWin(QDialog):
-    def __init__(self, parent=RabbitWin):
+    def __init__(self, parent=RabbitWin) -> None:
         super(subXUVWin, self).__init__(parent)
         self.layout = QHBoxLayout()
         #self.layout.setContentsMargins(0, 0, 0, 0)
@@ -942,7 +982,7 @@ class subXUVWin(QDialog):
         self.setLayout(self.layout)
         self.show()
 
-    def init_layout(self):
+    def init_layout(self) -> None:
         self.rabgraph = ow.plot3DWidget(self)
 
         self.graph2layout = QVBoxLayout()
@@ -980,7 +1020,7 @@ class subXUVWin(QDialog):
 
         self.graph2layout.addLayout(self.btn_layout)
 
-    def substract_lr(self):
+    def substract_lr(self) -> None:
         try:
             hnu = cts.HEV * cts.cur_nu
             cts.rabbitxuvsub_mat = np.array(cts.rabbit_mat) # the np.array() synthax must not be removed:
@@ -1018,18 +1058,19 @@ class subXUVWin(QDialog):
 
         except Exception:
             print(traceback.format_exception(*sys.exc_info()))
-    def cancel_lr(self):
+
+    def cancel_lr(self) -> None:
         cts.rabbitxuvsub_mat = np.zeros([1,1])
         self.parent().window().updateglobvar_fn()
         self.destroy()
 
-    def done_lr(self):
+    def done_lr(self) -> None:
         self.parent().window().updateglobvar_fn()
         cts.xuvsubstracted = True
         self.parent().destroy()
 
 class FTContrastWin(QDialog):
-    def __init__(self, parent=RabbitWin):
+    def __init__(self, parent=RabbitWin) -> None:
         super(FTContrastWin, self).__init__(parent)
 
         self.setWindowFlags(Qt.Window)
@@ -1043,11 +1084,11 @@ class FTContrastWin(QDialog):
         self.init_FTlayout()
         self.init_peaksTable()
 
-        self.mainlayout.addLayout(self.commandlayout)
+        self.mainlayout.addLayout(self.commandLayout)
         self.setLayout(self.mainlayout)
         self.show()
 
-    def init_var(self):
+    def init_var(self) -> None:
         self.SBi = int(cts.first_harm) + 1
         self.contrast = np.zeros(cts.bandsnb)
         self.contrast_int = np.zeros(cts.bandsnb)
@@ -1067,7 +1108,7 @@ class FTContrastWin(QDialog):
         self.fpeak_main = cts.fpeak_main
         self.fpeak_index = self.par.fpeak_index
 
-    def init_graphLayout(self):
+    def init_graphLayout(self) -> None:
         self.graphlayout = QVBoxLayout()
 
         fig = Figure(figsize=(4, 3), dpi=100)
@@ -1105,8 +1146,8 @@ class FTContrastWin(QDialog):
 
         self.refreshplot_fn()
 
-    def init_two_wlayout(self):
-        self.commandlayout = QVBoxLayout()
+    def init_two_wlayout(self) -> None:
+        self.commandLayout = QVBoxLayout()
 
         self.two_wlayout = QGridLayout()
         self.two_w_box = QGroupBox()
@@ -1140,9 +1181,9 @@ class FTContrastWin(QDialog):
         self.two_wlayout.addWidget(self.two_w_btn, 1, 4)
 
         self.two_w_box.setLayout(self.two_wlayout)
-        self.commandlayout.addWidget(self.two_w_box)
+        self.commandLayout.addWidget(self.two_w_box)
 
-    def init_FTlayout(self):
+    def init_FTlayout(self) -> None:
         self.FTlayout = QGridLayout()
         self.FT_box = QGroupBox()
         self.FT_box.setTitle("FT")
@@ -1182,17 +1223,17 @@ class FTContrastWin(QDialog):
         self.FTlayout.addWidget(self.FT_btn, 1, 4)
 
         self.FT_box.setLayout(self.FTlayout)
-        self.commandlayout.addWidget(self.FT_box)
+        self.commandLayout.addWidget(self.FT_box)
 
-    def init_peaksTable(self):
+    def init_peaksTable(self) -> None:
         self.peaksTable = QTableWidget()
         self.peaksTable.setSelectionBehavior(QTableView.SelectRows)
 
-        self.commandlayout.addWidget(self.peaksTable)
+        self.commandLayout.addWidget(self.peaksTable)
 
         self.refreshTable_fn()
 
-    def FT_fn(self):
+    def FT_fn(self) -> None:
         try:
            self.ampl = []
            self.ang = []
@@ -1212,12 +1253,12 @@ class FTContrastWin(QDialog):
         except Exception:
             print(traceback.format_exception(*sys.exc_info()))
 
-    def FT_lr(self):
+    def FT_lr(self) -> None:
         self.FT_fn()
         self.refreshTable_fn()
         self.refreshplot_fn()
 
-    def find_2w_fn(self):
+    def find_2w_fn(self) -> None:
         self.FT_fn()
         self.fpeak = []
         self.peak = np.zeros(cts.bandsnb)
@@ -1246,7 +1287,7 @@ class FTContrastWin(QDialog):
             cts.peak_phase[i] = -1*(cts.FT_phase[i, self.fpeak_index] + cts.two_w_phioffset)
         cts.peak_phase = np.unwrap(cts.peak_phase)
 
-    def find_2w_lr(self):
+    def find_2w_lr(self) -> None:
         try:
             self.find_2w_fn()
             self.refreshTable_fn()
@@ -1254,7 +1295,7 @@ class FTContrastWin(QDialog):
         except Exception:
             print(traceback.format_exception(*sys.exc_info()))
 
-    def refreshTable_fn(self):
+    def refreshTable_fn(self) -> None:
         self.peaksTable.clear()
         self.peaksTable.setRowCount(cts.bandsnb + 1)
         self.peaksTable.setColumnCount(5)
@@ -1289,7 +1330,7 @@ class FTContrastWin(QDialog):
         self.peaksTable.setFixedHeight(h + 25)
         self.peaksTable.setFixedWidth(w + 20)
 
-    def refreshplot_fn(self):
+    def refreshplot_fn(self) -> None:
         self.ax1.cla()
         self.ax2.cla()
         for i in range(cts.bandsnb):
@@ -1307,11 +1348,11 @@ class FTContrastWin(QDialog):
 
         self.fc.draw()
 
-    def phioffset_lr(self):
+    def phioffset_lr(self) -> None:
         cts.two_w_phioffset = float(self.phioffset_le.text())
         self.parent().window().updateglobvar_fn()
 
-    def integral_lr(self):
+    def integral_lr(self) -> None:
         if self.integral_cb.isChecked():
             cts.two_w_integral = True
             if self.average_cb.isChecked():
@@ -1320,7 +1361,7 @@ class FTContrastWin(QDialog):
             cts.two_w_integral = False
         self.parent().window().updateglobvar_fn()
 
-    def average_lr(self):
+    def average_lr(self) -> None:
         if self.average_cb.isChecked():
             cts.two_w_average = True
             if self.integral_cb.isChecked():
@@ -1329,54 +1370,54 @@ class FTContrastWin(QDialog):
             cts.two_w_average = False
         self.parent().window().updateglobvar_fn()
 
-    def bfilter_lr(self):
+    def bfilter_lr(self) -> None:
         if self.bfilter_cb.isChecked():
             cts.two_w_bfilter = True
         else:
             cts.two_w_bfilter = False
         self.parent().window().updateglobvar_fn()
 
-    def FTpaddingle_lr(self):
+    def FTpaddingle_lr(self) -> None:
         try:
             cts.FT_npad = int(self.FTpadding_le.text())
             self.parent().window().updateglobvar_fn()
         except ValueError:
             print("npad must be an integer")
 
-    def FTpaddingcb_lr(self):
+    def FTpaddingcb_lr(self) -> None:
         if self.FTpadding_cb.isChecked():
             cts.FT_padding = True
         else:
             cts.FT_padding = False
         self.parent().window().updateglobvar_fn()
 
-    def FTwindow_lr(self):
+    def FTwindow_lr(self) -> None:
         if self.FTwindow_cb.isChecked():
             cts.FT_window = True
         else:
             cts.FT_window = False
         self.parent().window().updateglobvar_fn()
 
-    def FTzeroorder_lr(self):
+    def FTzeroorder_lr(self) -> None:
         if self.FTzeroorder_cb.isChecked():
             cts.FT_zero_order = True
         else:
             cts.FT_zero_order = False
         self.parent().window().updateglobvar_fn()
 
-    def FTdt_lr(self):
+    def FTdt_lr(self) -> None:
         cts.scanstep_fs = float(self.FTdt_le.text())
         cts.scanstep_nm = cts.scanstep_fs / 2 * (cts.C * 1e-6)
         self.parent().window().updateglobvar_fn()
 
-    def cb_lr(self):
+    def cb_lr(self) -> None:
         self.refreshplot_fn()
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event) -> None:
         key = event.key()
 
 class RainbowWin(QDialog):
-    def __init__(self, parent=RabbitWin):
+    def __init__(self, parent=RabbitWin) -> None:
         super(RainbowWin, self).__init__(parent)
         self.setGeometry(300, 300, 600, 400)
         self.setWindowFlags(Qt.Window)
@@ -1392,11 +1433,11 @@ class RainbowWin(QDialog):
         self.setLayout(self.mainlayout)
         self.show()
 
-    def init_var(self):
+    def init_var(self) -> None:
         self.plotachirp = True
         self.peak_phase = np.array(cts.peak_phase)
 
-    def init_graphlayout(self):
+    def init_graphlayout(self) -> None:
         self.graphlayout = QVBoxLayout()
 
         fig = Figure(figsize=(4, 3), dpi=100)
@@ -1412,8 +1453,8 @@ class RainbowWin(QDialog):
 
         self.mainlayout.addLayout(self.graphlayout)
 
-    def init_commandlayout(self):
-        self.commandlayout = QHBoxLayout()
+    def init_commandlayout(self) -> None:
+        self.commandLayout = QHBoxLayout()
 
         self.subattochirp_btn = QPushButton("Sub. achirp", self)
         self.reset_btn = QPushButton("reset", self)
@@ -1423,12 +1464,12 @@ class RainbowWin(QDialog):
         self.reset_btn.clicked.connect(self.reset_lr)
         self.export_btn.clicked.connect(self.export_lr)
 
-        self.commandlayout.addWidget(self.subattochirp_btn)
-        self.commandlayout.addWidget(self.reset_btn)
-        self.commandlayout.addWidget(self.export_btn)
-        self.mainlayout.addLayout(self.commandlayout)
+        self.commandLayout.addWidget(self.subattochirp_btn)
+        self.commandLayout.addWidget(self.reset_btn)
+        self.commandLayout.addWidget(self.export_btn)
+        self.mainlayout.addLayout(self.commandLayout)
 
-    def subattochirp_lr(self):
+    def subattochirp_lr(self) -> None:
         hnu = cts.HEV * cts.cur_nu
         self.peak_phase = cts.peak_phase - (self.par.pa[0] * self.par.energy_rainbow/hnu +\
                                            self.par.pa[1])
@@ -1436,7 +1477,7 @@ class RainbowWin(QDialog):
         self.refreshplot_fn()
         self.subattochirp_btn.setEnabled(False)
 
-    def export_lr(self):
+    def export_lr(self) -> None:
         filenamesave = QFileDialog.getSaveFileName(self)
         fname = filenamesave[0]
         try:
@@ -1472,13 +1513,13 @@ class RainbowWin(QDialog):
         except Exception:
             print(traceback.format_exception(*sys.exc_info()))
 
-    def reset_lr(self):
+    def reset_lr(self) -> None:
         self.peak_phase = np.array(cts.peak_phase)
         self.plotachirp = True
         self.subattochirp_btn.setEnabled(True)
         self.refreshplot_fn()
 
-    def refreshplot_fn(self):
+    def refreshplot_fn(self) -> None:
         hnu = cts.HEV * cts.cur_nu
         self.ax1.cla()
         self.ax2.cla()
@@ -1498,7 +1539,7 @@ class RainbowWin(QDialog):
         self.fc.draw()
 
 class SBvsDelayWin(QDialog):
-    def __init__(self, parent=RabbitWin):
+    def __init__(self, parent=RabbitWin) -> None:
         super(SBvsDelayWin, self).__init__(parent)
         self.setGeometry(300, 300, 1000, 500)
         self.setWindowFlags(Qt.Window)
@@ -1515,7 +1556,7 @@ class SBvsDelayWin(QDialog):
         self.setLayout(self.mainlayout)
         self.show()
 
-    def init_var(self):
+    def init_var(self) -> None:
 
         self.jx = []
         for xi, xf in cts.bands_vect:
@@ -1540,7 +1581,7 @@ class SBvsDelayWin(QDialog):
 
         self.parent().window().updateglobvar_fn()
 
-    def init_graphlayout(self):
+    def init_graphlayout(self) -> None:
         self.graphlayout = QVBoxLayout()
 
         fig = Figure(figsize=(4, 3), dpi=100)
@@ -1555,8 +1596,8 @@ class SBvsDelayWin(QDialog):
 
         self.mainlayout.addLayout(self.graphlayout)
 
-    def init_commandlayout(self):
-        self.commandlayout = QVBoxLayout()
+    def init_commandlayout(self) -> None:
+        self.commandLayout = QVBoxLayout()
 
         fig = Figure(figsize=(4, 3), dpi=100)
         self.contrast_fc = FigureCanvas(fig)
@@ -1565,18 +1606,18 @@ class SBvsDelayWin(QDialog):
         nav = NavigationToolbar2QT(self.contrast_fc, self)
         nav.setStyleSheet("QToolBar { border: 0px }")
 
-        self.commandlayout.addWidget(self.contrast_fc)
-        self.commandlayout.addWidget(nav)
+        self.commandLayout.addWidget(self.contrast_fc)
+        self.commandLayout.addWidget(nav)
 
         self.contrastTable = QTableWidget()
         self.contrastTable.setSelectionBehavior(QTableView.SelectRows)
         self.contrastTable.horizontalHeader().setDefaultSectionSize(90)
         self.contrastTable.verticalHeader().setDefaultSectionSize(30)
 
-        self.commandlayout.addWidget(self.contrastTable)
-        self.mainlayout.addLayout(self.commandlayout)
+        self.commandLayout.addWidget(self.contrastTable)
+        self.mainlayout.addLayout(self.commandLayout)
 
-    def refreshTable_fn(self):
+    def refreshTable_fn(self) -> None:
         self.contrastTable.clear()
 
         self.contrastTable.setRowCount(cts.bandsnb+1)
@@ -1600,7 +1641,7 @@ class SBvsDelayWin(QDialog):
         self.contrastTable.setFixedHeight(h + 25)
         self.contrastTable.setFixedWidth(w + 20)
 
-    def refreshplot_fn(self):
+    def refreshplot_fn(self) -> None:
         self.ax.cla()
         self.ax.set_xlabel("delay", fontsize=10)
         self.ax.set_ylabel("SB Intensity", fontsize=10)
@@ -1631,8 +1672,8 @@ class SBvsDelayWin(QDialog):
         for label in contrast_leg.get_lines():
             label.set_linewidth(1)
 
-    def cosfit_fn(self, delay, a0, a1, phi):
-        return a0 + a1 * np.cos(2* cts.fpeak_main * np.pi * cts.cur_nu * delay * 1e-15 + phi)
+    def cosfit_fn(self, delay, a0, a1, phi) -> float:
+        return float(a0 + a1 * np.cos(2* cts.fpeak_main * np.pi * cts.cur_nu * delay * 1e-15 + phi))
 
 
 if __name__ == '__main__':

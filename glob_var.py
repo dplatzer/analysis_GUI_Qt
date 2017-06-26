@@ -2,12 +2,10 @@ from scipy import constants
 import numpy as np
 
 ###### DATABANK #############
-
 HEV = constants.physical_constants['Planck constant in eV s'][0] #Planck constant in eV
 ME = constants.electron_mass
 QE = constants.elementary_charge
 C = constants.speed_of_light
-
 
 IP_HE = 24.58739 #Helium
 IP_NE = 21.56454 #Neon
@@ -22,8 +20,8 @@ IPLIST = [IP_HE, IP_NE, IP_AR, IP_KR, IP_XE, IP_N2_X]
 RFANO_HE = 60.15 # Helium
 RFANO_AR = 26.6 # Argon
 
-
-###### PARAMETERS ###########
+###### GLOBAL VARIABLES ###########
+''' Global means here the variables shared by the different widgets in the program'''
 #energy calibration
 afit = 0.0
 t0fit = 0.0
@@ -83,6 +81,7 @@ rabnormalized = False
 rabsmoothed = False
 xuvsubstracted = False
 
+''' The list of the variables displayed in the "variable explorer" on the left of the main window '''
 varlist = [['afit',afit], ['t0fit',t0fit], ['cfit',cfit], ['Ip',cur_Ip], ['nu',cur_nu], ['Vp',cur_Vp], ['L',cur_L],
 		   ['1st harm', first_harm], ['elow', elow], ['ehigh', ehigh], ['dE', dE], ['steps_nm', scanstep_nm],
 		   ['steps_fs', scanstep_fs], ['stepsnb', stepsnb], ['delay', delay_vect], ['energy', energy_vect],
@@ -122,6 +121,8 @@ def print_cts():
 	print("L (TOF length) = " + str(cur_L) + " m")
 	print("First harmonic: " + str(first_harm))
 
-	#just a synthax memo
+	#just a synthax memo for exception handling:
+	#try:
+	#	...
 	#except Exception:
-	#print(traceback.format_exception(*sys.exc_info()))
+	#	print(traceback.format_exception(*sys.exc_info()))

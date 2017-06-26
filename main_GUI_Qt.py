@@ -1,10 +1,9 @@
+"""The program has to be runned here"""
 import sys
-
-from PyQt5.QtCore import QRect, Qt
-from PyQt5 import QtGui
-from PyQt5.QtWidgets import QWidget, QApplication, QTabWidget, QHBoxLayout, QVBoxLayout, QMainWindow, QSplitter, QTableWidget
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QWidget, QApplication, QTabWidget, QHBoxLayout, QMainWindow, QSplitter, QTableWidget
 from PyQt5.QtWidgets import QTableWidgetItem, QTableView, QDialog
-import  PyQt5.QtWidgets as qtw
+import PyQt5.QtWidgets as qtw
 import traceback
 import numpy as np
 
@@ -12,21 +11,18 @@ import numpy as np
 import calib_win, Rabbit_win
 import glob_var as cts
 
-'''The main object
-comment'''
+'''The main object.'''
 class mainWin(QMainWindow):
-
-    def __init__(self):
+    def __init__(self) -> None:
         super(mainWin, self).__init__()
         self.setWindowTitle("Analysis Main")
         self.setGeometry(100, 100, 1100, 750)
         self.statusBar().showMessage("Statusbar - awaiting user control")
         self.show()
 
-
         self.container = QWidget()
         self.setCentralWidget(self.container)
-        #self.container.setContentsMargins(0, 0, 0, 0)
+
         self.mainLayout = qtw.QHBoxLayout(self.container)
         self.mainLayout.setSpacing(0)
         self.mainLayout.setContentsMargins(5, 5, 5, 5)
@@ -34,13 +30,12 @@ class mainWin(QMainWindow):
         self.verticalwidgets()
 
         self.splitter.addWidget(self.var_table)
-        # self.splitter.addWidget(self.frame2)
         self.splitter.addWidget(self.tabs_widget)
 
         self.mainLayout.addWidget(self.splitter)
 
-    def verticalwidgets(self):
-        # left side
+    def verticalwidgets(self) -> None:
+        # left side with the variable explorer
         self.var_table = QTableWidget()
         self.var_table.setSelectionBehavior(QTableView.SelectRows)
         self.var_table.doubleClicked.connect(self.var_table_lr)
@@ -56,17 +51,14 @@ class mainWin(QMainWindow):
         self.var_table.setUpdatesEnabled(True)
 
         self.var_table.setColumnWidth(0, 50)
-        #self.var_table.setMinimumWidth(150)
-        #self.var_table.setMaximumWidth(200)
         self.var_table.setColumnCount(3)
         cts.update_varlist()
         self.var_table.setRowCount(len(cts.varlist))
 
         self.updateglobvar_fn()
 
-        # right side
+        # right side with the tabs
         self.tabs_widget = QWidget()
-        #self.tabs_widget.setMinimumWidth(800)
 
         self.layout = qtw.QHBoxLayout(self.tabs_widget)
         self.layout.setContentsMargins(0, 0, 0, 0)
@@ -82,7 +74,9 @@ class mainWin(QMainWindow):
 
         self.layout.addWidget(self.main_panel)
 
-    def updateglobvar_fn(self):
+    ''' This function updates the values of the variable displayed on the left of the window. The list of the variables 
+    is in the glob_var.py file'''
+    def updateglobvar_fn(self) -> None:
         self.var_table.clear()
         self.var_table.setColumnCount(3)
         self.var_table.setRowCount(len(cts.varlist))
@@ -91,7 +85,7 @@ class mainWin(QMainWindow):
         self.var_table.setItem(0, 1, QTableWidgetItem("dtype"))
         self.var_table.setItem(0, 2, QTableWidgetItem("value"))
 
-        cts.update_varlist()
+        cts.update_varlist() # updating the content of the variable list
         for i in range(len(cts.varlist)):
             var = cts.varlist[i][1]
             self.var_table.setItem(i, 0, QTableWidgetItem(cts.varlist[i][0]))
@@ -112,10 +106,9 @@ class mainWin(QMainWindow):
         w = 0
         for i in range(self.var_table.columnCount()):
             w = w + self.var_table.columnWidth(i)
-        #print(w)
         self.var_table.setFixedWidth(w+5)
 
-    def custom_type_fn(self, o):
+    def custom_type_fn(self, o) -> str:
         type = "other"
         if isinstance(o, int):
             type = "int"
@@ -131,15 +124,17 @@ class mainWin(QMainWindow):
             type = "string"
         return type
 
-    def var_table_lr(self, doubleClickedIndex):
+    ''' function called when double-clicking on a variable'''
+    def var_table_lr(self, doubleClickedIndex) -> None:
         rowindex = doubleClickedIndex.row()
         try:
-
-            vardiag = varDialog(rowindex, self)
+            vardiag = varDialog(rowindex, self) # new class created below
         except Exception:
             print(traceback.format_exception(*sys.exc_info()))
 
-    def onTabChange(self):
+    ''' Updating elow, ehigh and dE when going from one tab to the other'''
+    def onTabChange(self) -> None:
+
         self.tab1.elow_le.setText("{:.2f}".format(cts.elow))
         self.tab1.ehigh_le.setText("{:.2f}".format(cts.ehigh))
         self.tab1.dE_le.setText("{:.2f}".format(cts.dE))
@@ -193,7 +188,6 @@ class varDialog(QDialog):
         self.mainlayout.addWidget(self.table)
         self.setLayout(self.mainlayout)
         self.show()
-
 
 
 if __name__ == "__main__":

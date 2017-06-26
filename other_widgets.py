@@ -1,21 +1,12 @@
-
-import sys, os, traceback
-from PyQt5.QtCore import QRect, Qt
-from PyQt5.QtWidgets import QWidget, QPushButton, QApplication, QGridLayout, QHBoxLayout, QVBoxLayout, QGroupBox, QLabel
-from PyQt5.QtWidgets import QLineEdit, QCheckBox, QComboBox, QRadioButton, QButtonGroup, QFileDialog, QDialog, QTableWidget
-from PyQt5.QtWidgets import QTableWidgetItem, QTableView, QLayout, QSlider
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, FigureCanvas, NavigationToolbar2QT
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QCheckBox, QSlider
+from matplotlib.backends.backend_qt5agg import FigureCanvas, NavigationToolbar2QT
 from matplotlib.figure import Figure
-from glob import glob
 import numpy as np
 
-#homemade modules
-import glob_var as cts
-
 class plot3DWidget(QWidget):
-    def __init__(self, parent):
+    def __init__(self, parent) -> None:
         super(plot3DWidget, self).__init__(parent)
-        #self.setGeometry(300, 300, 500, 300)
         self.setMinimumHeight(400)
 
         self.mainlayout = QVBoxLayout()
@@ -31,7 +22,7 @@ class plot3DWidget(QWidget):
         self.setLayout(self.mainlayout)
         self.show()
 
-    def init_var(self):
+    def init_var(self) -> None:
         self.xlabel = ""
         self.ylabel = ""
         self.logscale = False
@@ -40,7 +31,8 @@ class plot3DWidget(QWidget):
         self.signal = np.zeros([1,1])
         self.dataplotted = False
 
-    def init_graphlayout(self):
+    ''' Initialization of the graph object'''
+    def init_graphlayout(self) -> None:
         self.graphlayout = QVBoxLayout()
 
         fig = Figure(figsize=(4, 3), dpi=100)
@@ -53,9 +45,9 @@ class plot3DWidget(QWidget):
         self.graphlayout.addWidget(self.fc)
         self.graphlayout.addWidget(nav)
 
-    def init_optionslayout(self):
+    ''' Initialization of the settings section under the graph'''
+    def init_optionslayout(self) -> None:
         self.optionslayout = QVBoxLayout()
-
         self.colorlayout = QHBoxLayout()
 
         self.color_sld = QSlider(Qt.Horizontal, self)
@@ -79,14 +71,16 @@ class plot3DWidget(QWidget):
 
         self.optionslayout.addLayout(self.colorlayout)
 
-    def colorauto_lr(self):
+    ''' "color auto" checkbox listener'''
+    def colorauto_lr(self) -> None:
         if self.colorauto_cb.isChecked():
             self.color_sld.setValue(25)
             self.color_sld.setEnabled(False)
         else:
             self.color_sld.setEnabled(True)
 
-    def logscale_lr(self):
+    ''' "logscale" checkbox listener'''
+    def logscale_lr(self) -> None:
         if self.logscale_cb.isChecked():
             self.logscale = True
             self.colorauto_cb.setCheckState(Qt.Checked)
@@ -98,11 +92,13 @@ class plot3DWidget(QWidget):
 
         self.refreshplot_fn()
 
-    def colorsld_lr(self, value):
+    ''' color slider listener'''
+    def colorsld_lr(self, value) -> None:
         if(self.dataplotted):
             self.refreshplot_fn(value=value)
 
-    def refreshplot_fn(self, x=None, y=None, signal=None, value=25):
+    ''' Updating the graph'''
+    def refreshplot_fn(self, x=None, y=None, signal=None, value=25) -> None:
         if x is None:
             x = self.x
         else:

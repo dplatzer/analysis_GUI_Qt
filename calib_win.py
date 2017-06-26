@@ -3,43 +3,46 @@ from PyQt5.QtCore import QRect, Qt
 from PyQt5.QtWidgets import QWidget, QPushButton, QApplication, QGridLayout, QHBoxLayout, QVBoxLayout, QGroupBox, QLabel
 from PyQt5.QtWidgets import QLineEdit, QCheckBox, QComboBox, QRadioButton, QButtonGroup, QFileDialog, QDialog, QTableWidget
 from PyQt5.QtWidgets import QTableWidgetItem, QTableView
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, FigureCanvas, NavigationToolbar2QT
+from matplotlib.backends.backend_qt5agg import FigureCanvas, NavigationToolbar2QT
 from matplotlib.figure import Figure
 import numpy as np
 from scipy import optimize as opt
 from matplotlib.ticker import FormatStrFormatter
-import traceback
-
 
 # Homemade modules
 import glob_var as cts
 import analysis_functions as af
 
-
 class CalibWin(QWidget):
     """ Energy calibration window
 
-    For the names of the children widgets, I tried to put suffixes that indicates clearly their types:
-    _btn for QPushButton, _le for QLineEdit, _lb for QLabel, layout for QHBoxLayout, QVBoxLayout or QGridLayout, _box for
-    QGroupBox, _cb for QCheckBox, _rb for QRadioButton
+    For the names of the children widgets, I tried to put suffixes that indicate clearly their types:
+    *_btn -> QPushButton,
+    *_le -> QLineEdit,
+    *_lb -> QLabel,
+    *layout -> QHBoxLayout, QVBoxLayout or QGridLayout,
+    *_box -> QGroupBox,
+    *_cb -> QCheckBox,
+    *_rb -> QRadioButton
+
     The functions that are connected to a widget's event have the suffix _lr (for 'listener'). For example, a button named
     test_btn will be connected to a function test_lr.
     Some functions may be connected to widgets but without the suffix _lr in their names. It means that they are not only
     called when interacting with the widget.
     """
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         """Initialization of the window
 
         the main layout is called mainLayout. It is divided in two:
             - graphLayout: the left part, contains all the figures
-            - commandLayout: the right part, contains all the buttons, fields,...
+            - commandLayout: the right part, contains all the buttons, fields, checkboxes...
         Both graphLayout and commandLayout are divided into sub-layouts.
 
         This function calls several functions to initialize each part of the window. The name of these functions contains
-        'init_[...]layout'.
+        'init_*layout'.
         """
         super(CalibWin, self).__init__(parent=parent)
-        #self.setGeometry(300, 300, 1000, 600)
+
         self.setWindowTitle("Energy Calibration")
         self.mainlayout = QHBoxLayout()
         self.graphlayout = QVBoxLayout()
@@ -47,6 +50,8 @@ class CalibWin(QWidget):
         self.commandlayout.setSpacing(10)
 
         self.init_var()
+
+        # initialization of all the widgets/layouts
         self.init_btnlayout()
         self.init_tof2evlayout()
         self.init_eparlayout()
@@ -55,6 +60,7 @@ class CalibWin(QWidget):
         self.init_tofgraphlayout()
         self.init_graphauxlayout()
 
+        # making the buttons not resizable
         for widget in self.children():
             if isinstance(widget, QPushButton):
                 widget.setSizePolicy(0, 0)
@@ -64,11 +70,9 @@ class CalibWin(QWidget):
         self.setLayout(self.mainlayout)
         self.show()
 
-    def init_var(self):
-        """ creates the global variables
-        :argument: None
-        :return: None
-        """
+    ''' Initialization of instance attributes'''
+    def init_var(self) -> None:
+
         self.withsb_bool = False
         self.calibloaded = False
         self.dataloaded = False
@@ -79,11 +83,9 @@ class CalibWin(QWidget):
         self.showexppeaksBool = False
         self.calibBool = False
 
-    def init_btnlayout(self):
-        """ In commandLayout. Initializes the top right part of the window, with 6 buttons (see just below)
-        :argument: None
-        :return: None
-        """
+    ''' In commandLayout - Initialization of the top right part of the layout, with 6 buttons (see just below)'''
+    def init_btnlayout(self) -> None:
+
         btnlayout = QGridLayout()
         btnlayout.setSpacing(10)
 
@@ -119,12 +121,10 @@ class CalibWin(QWidget):
         btnlayout.addWidget(self.exportXUV_btn, 0, 3)
         self.commandlayout.addLayout(btnlayout)
 
-    def init_tof2evlayout(self):
-        """ In commandLayout. Initializes tof to eV section: parameters of the af.find_local_maxima function, 'TOF to
-        energy' button and 'with sidebands checkbox'
-        :argument: None
-        :return: None
-        """
+    ''' In commandLayout - Initialization of the tof to eV section: parameters of the af.find_local_maxima function, 
+    'TOF to energy' button and 'with sidebands checkbox' '''
+    def init_tof2evlayout(self) -> None:
+
         tof2evlayout = QHBoxLayout()
         flmlayout = QGridLayout()
         flmlayout.setSpacing(10)
@@ -160,12 +160,10 @@ class CalibWin(QWidget):
         tof2evlayout.addWidget(self.tof2en_btn)
         self.commandlayout.addLayout(tof2evlayout)
 
-    def init_eparlayout(self):
-        """ In commandLayout. Initializes the experimental parameters section: Retarding potential, TOF length, wavelength,
-        gas and first harmonic expected to see.
-        :argument: None
-        :return: None
-        """
+    ''' In commandLayout - Initialization of the experimental parameters section: Retarding potential, TOF length, 
+    wavelength, gas and first harmonic expected to see.'''
+    def init_eparlayout(self) -> None:
+
         gases = cts.GASLIST
 
         epar_box = QGroupBox(self)
@@ -207,12 +205,10 @@ class CalibWin(QWidget):
 
         self.commandlayout.addWidget(epar_box)
 
-    def init_fitparlayout(self):
-        """Initializes the fit parameter section with a, t0 and c. First line: guess values calculated from the
-        experimental parameters. Second line: fitted values.
-        :argument: None
-        :return: None
-        """
+    ''' In commandLayout - Initialization of the fit parameter section with a, t0 and c. First line: guess values calculated 
+    from the experimental parameters. Second line: fitted values.'''
+    def init_fitparlayout(self) -> None:
+
         fitpar_box = QGroupBox()
         fitpar_box.setTitle("Calibration parameters")
         fitpar_box.setSizePolicy(0, 0)
@@ -251,11 +247,9 @@ class CalibWin(QWidget):
         self.gas_combo.setCurrentIndex(2)  # Argon
         self.update_cts_fn()
 
-    def init_envectlayout(self):
-        """In commandLayout. Initializes the resulting energy vector section, with elow, ehigh and dE
-        :argument: None
-        :return: None
-        """
+    ''' In commandLayout - Initialization of the resulting energy vector section, with elow, ehigh and dE'''
+    def init_envectlayout(self) -> None:
+
         cts.elow = (float(self.firstharm_le.text()) - 1) * cts.HEV * cts.cur_nu
         cts.ehigh = float(34 * cts.HEV * cts.cur_nu)
         cts.dE = 0.01
@@ -291,11 +285,9 @@ class CalibWin(QWidget):
         self.commandlayout.addWidget(envect_box)
         self.update_envect_fn()
 
-    def init_tofgraphlayout(self):
-        """In graphLayout. Initializes the top figure on the window, where the time of flight is plotted
-        :argument: None
-        :return: None
-        """
+    ''' In graphLayout - Initialization of the top figure on the window, where the time of flight is plotted'''
+    def init_tofgraphlayout(self) -> None:
+
         tof_fig = Figure(figsize=(4, 3), dpi=100)
         self.tof_fc = FigureCanvas(tof_fig)
         self.tof_fc.mpl_connect('button_press_event', self.onclick)
@@ -354,11 +346,9 @@ class CalibWin(QWidget):
         self.graphlayout.addWidget(tof_nav)
         self.graphlayout.addLayout(tgparalayout)
 
-    def init_graphauxlayout(self):
-        """In graphLayout. Initializes the two bottom figures on the window
-        :argument: None
-        :return: None
-        """
+    ''' In graphLayout - Initialization the two bottom figures on the window'''
+    def init_graphauxlayout(self) -> None:
+
         graphauxlayout = QHBoxLayout()
         ga1layout = QVBoxLayout()
         ga2layout = QVBoxLayout()
@@ -383,11 +373,8 @@ class CalibWin(QWidget):
         graphauxlayout.addLayout(ga2layout)
         self.graphlayout.addLayout(graphauxlayout)
 
-    def importcalib_lr(self):
-        """From a calibration file, loads afit, t0fit, cfit and the first harmonic
-        :argument: None
-        :return: None
-        """
+    ''' From a calibration file, loading afit, t0fit, cfit and the first harmonic'''
+    def importcalib_lr(self) -> None:
         calib_fname = QFileDialog.getOpenFileName(self, 'Import calibration')
         calib_f = calib_fname[0]
         if(calib_f):
@@ -411,7 +398,8 @@ class CalibWin(QWidget):
                 except ValueError:
                     print("Incorrect calibration data")
 
-    def exportcalib_lr(self):
+    ''' Exporting afit, t0fit, cfit and the first harmonic in a file after choosing its name and location'''
+    def exportcalib_lr(self) -> None:
         filename = QFileDialog.getSaveFileName(self, 'Save XUV')
         fname = filename[0]
         if fname:
@@ -419,21 +407,17 @@ class CalibWin(QWidget):
             print('ok')
             np.savetxt(fname, fit_param, fmt='%1.4e', delimiter='\t')
 
-    def update_fitpar_fn(self):
-        """ Updates the fit parameters on the window
-        :argument: None
-        :return: None
-        """
+    ''' Updating the fit parameters on the window'''
+    def update_fitpar_fn(self) -> None:
+
         if (self.calibBool):
             self.afit_lb.setText("{:.3e}".format(cts.afit))
             self.t0fit_lb.setText("{:.3e}".format(cts.t0fit))
             self.cfit_lb.setText("{:.3f}".format(cts.cfit))
 
-    def update_cts_fn(self):
-        """ Updates the experimental parameters (and aguess, t0guess, cguess)
-        :argument: None
-        :return: None
-        """
+    ''' Updates the experimental parameters (and aguess, t0guess, cguess)'''
+    def update_cts_fn(self) -> None:
+
         try:
             cts.cur_nu = cts.C / (float(self.wvlength_le.text()) * 1e-9)
             cts.cur_Vp = float(self.retpot_le.text())
@@ -451,11 +435,9 @@ class CalibWin(QWidget):
         except ZeroDivisionError:
             print('ZeroDivisionError')
 
-    def update_envect_fn(self):
-        """ Updates th energy vector parameters
-        :argument: None
-        :return: None
-        """
+    ''' Updating th energy vector parameters with the values written in the associated QLineEdit objects'''
+    def update_envect_fn(self) -> None:
+
         cts.elow = float(self.elow_le.text())
         cts.ehigh = float(self.ehigh_le.text())
         cts.dE = float(self.dE_le.text())
@@ -463,32 +445,27 @@ class CalibWin(QWidget):
         self.ehigh_le.setText("{:.2f}".format(cts.ehigh))
         self.window().updateglobvar_fn()
 
-    def gas_combo_lr(self, i):
-        ''' Listens to the gas QCombobox
-        :argument: current index of the combobox
-        :return: None
-        '''
+    ''' Gas QCombobox listener'''
+    def gas_combo_lr(self, i) -> None:
         cts.cur_Ip = cts.IPLIST[i]
         self.update_cts_fn()
 
-    def threshtype_lr(self):
-        ''' listens to the threshold radiobuttons: Y, Xmin or Xmax
-        :argument: None
-        :return: None
-        '''
+    ''' Listener of the threshold radiobuttons: Y, Xmin or Xmax'''
+    def threshtype_lr(self) -> None:
+
         rb = self.sender()
         self.threshtype = rb.value
 
-    def withsb_fn(self, state):
+    ''' "with sidebands" checkbox listener '''
+    def withsb_fn(self, state) -> None:
         if state == Qt.Checked:
             self.withsb_bool = True
         else:
             self.withsb_bool = False
 
-    def loadfile_lr(self):
-        ''' When clickind on the "load data" button
-        :return: None
-        '''
+    ''' "load data" button listener'''
+    def loadfile_lr(self) -> None:
+
         TOFfile = QFileDialog.getOpenFileName(self, 'Load data')
         fname = TOFfile[0]
         if(fname):
@@ -531,11 +508,9 @@ class CalibWin(QWidget):
                 except IndexError:
                     print('Incorrect data file')
 
-    def rmbgnd_lr(self):
-        ''' On clicking on the "remove bgnd button"
+    ''' "remove bgnd" button listener'''
+    def rmbgnd_lr(self) -> None:
 
-        :return: None
-        '''
         self.counts[:,1] = self.counts[:,1] - self.counts[300:600,1].mean()
 
         self.bgndremoved = True
@@ -552,29 +527,31 @@ class CalibWin(QWidget):
         self.rmbgnd_btn.setEnabled(False)
         self.refreshplot_fn()
 
-    def showexppeaks_lr(self, state):
+    ''' "show expected peaks" checkbox listener '''
+    def showexppeaks_lr(self, state) -> None:
         if state == Qt.Checked:
             self.showexppeaksBool = True
         else:
             self.showexppeaksBool = False
         self.refreshplot_fn()
 
-    def setth_lr(self):
+    ''' "set threshold" checkbox listener '''
+    def setth_lr(self) -> None:
         if self.setth_cb.isChecked():
             self.addpeak_cb.setCheckState(Qt.Unchecked)
 
-    def addpeak_lr(self):
+    ''' "add peak" checkbox listener '''
+    def addpeak_lr(self) -> None:
         if self.addpeak_cb.isChecked():
             self.setth_cb.setCheckState(Qt.Unchecked)
 
-    def removepeaks_lr(self):
-        rmp = rmPeaksDialog(self)
+    ''' "remove peaks" button listener '''
+    def removepeaks_lr(self) -> None:
+        rmp = rmPeaksDialog(self) # new class defined below
 
-    def findpeaks_lr(self):
-        ''' On clicking on the "find peaks button"
+    ''' "find peaks" button listener '''
+    def findpeaks_lr(self) -> None:
 
-        :return: None
-        '''
         try:
             ip, dp, convolution = af.find_local_maxima(self.counts[:, 1], self.thy, self.thxmin, self.thxmax,
                                                        int(self.sm1_le.text()), int(self.sm2_le.text()),
@@ -592,7 +569,8 @@ class CalibWin(QWidget):
         except ValueError:
             print('incorrect value for find local maxima paramaters')
 
-    def tof2en_lr(self):
+    ''' "TOF to energy" button listener '''
+    def tof2en_lr(self) -> None:
         if self.calibloaded:
             self.p_opt = [0, 0, 0]
             self.p_opt[0] = cts.afit
@@ -640,7 +618,8 @@ class CalibWin(QWidget):
         self.fit_fc.draw()
         self.en_fc.draw()
 
-    def refreshplot_fn(self):
+    ''' Updating the top left (TOF) graph'''
+    def refreshplot_fn(self) -> None:
         xmin, xmax = self.tof_ax.get_xlim()
         ymin, ymax = self.tof_ax.get_ylim()
         self.tof_ax.cla()
@@ -684,7 +663,8 @@ class CalibWin(QWidget):
         self.tof_ax.set_xlim(xmin, xmax)
         self.tof_fc.draw()
 
-    def onclick(self, event):
+    ''' called when double-clicking on the TOF graph'''
+    def onclick(self, event) -> None:
         if self.dataloaded and self.addpeak_cb.isChecked(): #add a peak on clicking on the figure
             i=0
             ifound = False
@@ -696,14 +676,7 @@ class CalibWin(QWidget):
             self.maximaIndices.insert(i, event.xdata)
             self.maximaIntensity.insert(i, event.ydata)
             self.refreshplot_fn()
-            '''try:
-                self.peaksTable.delete('1.0', tk.END)
-                self.peaksTable.insert(tk.END, "Index\t\txcoord\t\tycoord\n")
-                for i in range(0, len(self.maximaIndices)):
-                    self.peaksTable.insert(tk.END, str(i) + "\t\t %.2E\t\t%.2E\n" % (
-                    self.maximaIndices[i], self.maximaIntensity[i]))
-            except:
-                blop = 0'''
+
         if self.dataloaded and self.setth_cb.isChecked():
             if self.Y_rb.isChecked():
                 self.thy = event.ydata
@@ -722,14 +695,16 @@ class CalibWin(QWidget):
                 self.threshxmaxBool = True
             self.refreshplot_fn()
 
-    def exportXUV_lr(self):
+    ''' "Export XUV" button listener. Saving the energy vector and the energy-converted TOF signal'''
+    def exportXUV_lr(self) -> None:
         filename = QFileDialog.getSaveFileName(self, 'Save XUV')
         fname = filename[0]
         if fname:
             XUV_array = np.vstack((self.Eevlin, self.signal)).T
             np.savetxt(fname, XUV_array, delimiter='\t')
 
-    def clear_lr(self):
+    ''' "Clear" button listener. Resets all the objects, but not the global variables'''
+    def clear_lr(self) -> None:
         self.tof_ax.cla()
         self.fit_ax.cla()
         self.en_ax.cla()
@@ -759,8 +734,10 @@ class CalibWin(QWidget):
         self.window().updateglobvar_fn()
 
 
+''' created when clicking on the "remove peaks" button'''
 class rmPeaksDialog(QDialog):
-    def __init__(self, parent=CalibWin):
+    def __init__(self, parent=CalibWin) -> None:
+
         super(rmPeaksDialog, self).__init__(parent)
 
         self.par = self.parent()
@@ -797,7 +774,8 @@ class rmPeaksDialog(QDialog):
 
         self.show()
 
-    def refreshTable_fn(self):
+    ''' Updating the table'''
+    def refreshTable_fn(self) -> None:
         self.peaksTable.clear()
         self.peaksTable.setRowCount(len(self.par.maximaIndices) + 1)
         self.peaksTable.setColumnCount(2)
@@ -809,13 +787,16 @@ class rmPeaksDialog(QDialog):
             self.peaksTable.setItem(i + 1, 0, QTableWidgetItem("{:.3e}".format(self.par.maximaIndices[i])))
             self.peaksTable.setItem(i + 1, 1, QTableWidgetItem("{:.3e}".format(self.par.maximaIntensity[i])))
 
-    def changeindex2_lr(self, logicalIndex):
+    ''' Updating the row index on clicking on the vertical header'''
+    def changeindex2_lr(self, logicalIndex) -> None:
         self.currentindex = logicalIndex - 1
 
-    def changeindex_lr(self, clickedIndex):
+    ''' Updating the row index on clicking anywhere in the row'''
+    def changeindex_lr(self, clickedIndex) -> None:
         self.currentindex = clickedIndex.row()-1
 
-    def rmpeak_lr(self):
+    ''' "Remove peaks" button listener '''
+    def rmpeak_lr(self) -> None:
         del self.par.maximaIndices[self.currentindex]
         del self.par.maximaIntensity[self.currentindex]
         self.par.refreshplot_fn()
@@ -826,10 +807,12 @@ class rmPeaksDialog(QDialog):
         else:
             self.peaksTable.selectRow(self.currentindex+1)
 
-    def ok_lr(self):
+    ''' "ok" button listener '''
+    def ok_lr(self) -> None:
         self.destroy()
 
-    def cancel_lr(self):
+    ''' "cancel" button listener. Calling the parent function "findpeaks_lr" erases all the changes '''
+    def cancel_lr(self) -> None:
         self.par.findpeaks_lr()
         self.par.refreshplot_fn()
         self.destroy()
