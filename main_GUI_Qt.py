@@ -3,7 +3,7 @@ import sys
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QApplication, QTabWidget, QHBoxLayout, QMainWindow, QSplitter, QTableWidget
 from PyQt5.QtWidgets import QTableWidgetItem, QTableView, QDialog
-import  PyQt5.QtWidgets as qtw
+import PyQt5.QtWidgets as qtw
 import traceback
 import numpy as np
 
@@ -13,7 +13,7 @@ import glob_var as cts
 
 '''The main object.'''
 class mainWin(QMainWindow):
-    def __init__(self):
+    def __init__(self) -> None:
         super(mainWin, self).__init__()
         self.setWindowTitle("Analysis Main")
         self.setGeometry(100, 100, 1100, 750)
@@ -34,7 +34,7 @@ class mainWin(QMainWindow):
 
         self.mainLayout.addWidget(self.splitter)
 
-    def verticalwidgets(self):
+    def verticalwidgets(self) -> None:
         # left side with the variable explorer
         self.var_table = QTableWidget()
         self.var_table.setSelectionBehavior(QTableView.SelectRows)
