@@ -76,7 +76,7 @@ class mainWin(QMainWindow):
 
     ''' This function updates the values of the variable displayed on the left of the window. The list of the variables 
     is in the glob_var.py file'''
-    def updateglobvar_fn(self):
+    def updateglobvar_fn(self) -> None:
         self.var_table.clear()
         self.var_table.setColumnCount(3)
         self.var_table.setRowCount(len(cts.varlist))
@@ -108,7 +108,7 @@ class mainWin(QMainWindow):
             w = w + self.var_table.columnWidth(i)
         self.var_table.setFixedWidth(w+5)
 
-    def custom_type_fn(self, o):
+    def custom_type_fn(self, o) -> str:
         type = "other"
         if isinstance(o, int):
             type = "int"
@@ -125,7 +125,7 @@ class mainWin(QMainWindow):
         return type
 
     ''' function called when double-clicking on a variable'''
-    def var_table_lr(self, doubleClickedIndex):
+    def var_table_lr(self, doubleClickedIndex) -> None:
         rowindex = doubleClickedIndex.row()
         try:
             vardiag = varDialog(rowindex, self) # new class created below
@@ -133,7 +133,8 @@ class mainWin(QMainWindow):
             print(traceback.format_exception(*sys.exc_info()))
 
     ''' Updating elow, ehigh and dE when going from one tab to the other'''
-    def onTabChange(self):
+    def onTabChange(self) -> None:
+
         self.tab1.elow_le.setText("{:.2f}".format(cts.elow))
         self.tab1.ehigh_le.setText("{:.2f}".format(cts.ehigh))
         self.tab1.dE_le.setText("{:.2f}".format(cts.dE))
