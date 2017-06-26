@@ -1,32 +1,52 @@
 import sys, os, traceback
-from PyQt5.QtCore import QRect, Qt
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QPushButton, QApplication, QGridLayout, QHBoxLayout, QVBoxLayout, QGroupBox, QLabel
-from PyQt5.QtWidgets import QLineEdit, QCheckBox, QComboBox, QRadioButton, QButtonGroup, QFileDialog, QDialog, \
-    QTableWidget
-from PyQt5.QtWidgets import QTableWidgetItem, QTableView, QLayout, QSlider
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg, FigureCanvas, NavigationToolbar2QT
+from PyQt5.QtWidgets import QLineEdit, QCheckBox, QRadioButton, QButtonGroup, QFileDialog, QDialog, QTableWidget
+from PyQt5.QtWidgets import QTableWidgetItem, QTableView
+from matplotlib.backends.backend_qt5agg import FigureCanvas, NavigationToolbar2QT
 from matplotlib.figure import Figure
 from glob import glob
 import numpy as np
 from scipy import optimize as opt
-from scipy import interpolate
-from matplotlib.ticker import FormatStrFormatter
 
 # Homemade modules
 import glob_var as cts
 import analysis_functions as af
 import other_widgets as ow
 
-
 class RabbitWin(QWidget):
-    def __init__(self, parent=None):
+    """ Rabbit window
+
+        For the names of the children widgets, I tried to put suffixes that indicate clearly their types:
+        *_btn -> QPushButton,
+        *_le -> QLineEdit,
+        *_lb -> QLabel,
+        *layout -> QHBoxLayout, QVBoxLayout or QGridLayout,
+        *_box -> QGroupBox,
+        *_cb -> QCheckBox,
+        *_rb -> QRadioButton
+
+        The functions that are connected to a widget's event have the suffix _lr (for 'listener'). For example,
+        a button named test_btn will be connected to a function test_lr.
+        Some functions may be connected to widgets but without the suffix _lr in their names. It means that they
+        are not only called when interacting with the widget.
+        """
+    def __init__(self, parent=None) -> None:
+        """Initialization of the window
+
+                the main layout is called mainLayout. It is divided in two:
+                    - graphLayout: the left part, contains all the figures
+                    - commandLayout: the right part, contains all the buttons, fields, checkboxes...
+                Both graphLayout and commandLayout are divided into sub-layouts.
+
+                This function calls several functions to initialize each part of the window.
+                The name of these functions has the shape 'init_*layout'."""
         super(RabbitWin, self).__init__(parent=parent)
-        # self.setGeometry(300, 300, 1000, 600)
         self.setWindowTitle("RABBIT")
         self.mainlayout = QHBoxLayout()
         self.graphlayout = QVBoxLayout()
-        self.commandlayout = QVBoxLayout()
-        self.commandlayout.setSpacing(10)
+        self.commandLayout = QVBoxLayout()
+        self.commandLayout.setSpacing(10)
 
         self.init_var()
         self.init_importlayout()
@@ -38,16 +58,18 @@ class RabbitWin(QWidget):
         self.init_graphlayout()
 
         self.mainlayout.addLayout(self.graphlayout)
-        self.mainlayout.addLayout(self.commandlayout)
+        self.mainlayout.addLayout(self.commandLayout)
         self.setLayout(self.mainlayout)
         self.show()
 
-    def init_var(self):
+    ''' Initialization of instance attributes'''
+    def init_var(self) -> None:
         self.dataloaded = False
         self.xuvonlyloaded = False
         self.bandselected = False
 
-    def init_importlayout(self):
+    ''' In commandLayout - Initialization of the "Import" section'''
+    def init_importlayout(self) -> None:
         Importlayout = QGridLayout()
         Importlayout.setSpacing(10)
 
@@ -74,7 +96,7 @@ class RabbitWin(QWidget):
         Importlayout.addWidget(self.importrab_btn, 1, 2)
 
         Import_box.setLayout(Importlayout)
-        self.commandlayout.addWidget(Import_box)
+        self.commandLayout.addWidget(Import_box)
 
         for widget in Import_box.children():
             if isinstance(widget, QPushButton):
@@ -83,7 +105,8 @@ class RabbitWin(QWidget):
         self.importcalib_btn.setEnabled(True)
         self.importrabparam_btn.setEnabled(True)
 
-    def init_envectlayout(self):
+    ''' In commandLayout - Initialization of the energy vector section, with elow, ehigh and dE'''
+    def init_envectlayout(self) -> None:
         paramlayout = QHBoxLayout()
         envectlayout = QGridLayout()
         envectlayout.setSpacing(10)
@@ -130,9 +153,10 @@ class RabbitWin(QWidget):
 
         paramlayout.addLayout(scanparamlayout)
 
-        self.commandlayout.addLayout(paramlayout)
+        self.commandLayout.addLayout(paramlayout)
 
-    def init_sigtreatmentlayout(self):
+    ''' In commandLayout - Initialization of the "Signal Treatment" section'''
+    def init_sigtreatmentlayout(self) -> None:
         cts.bandsnb = 5
         sigtreatment_box = QGroupBox("Signal Treatment", self)
         sigtreatmentlayout = QGridLayout()
@@ -168,9 +192,10 @@ class RabbitWin(QWidget):
             if isinstance(widget, QLineEdit):
                 widget.setFixedSize(55, 20)
 
-        self.commandlayout.addWidget(sigtreatment_box)
+        self.commandLayout.addWidget(sigtreatment_box)
 
-    def init_rabbitlayout(self):
+    ''' In commandLayout - Initialization of the "RABBIT" section'''
+    def init_rabbitlayout(self) -> None:
         rabbitlayout = QGridLayout()
         rabbit_box = QGroupBox("RABBIT", self)
         rabbit_box.setFixedSize(300, 60)
@@ -194,9 +219,10 @@ class RabbitWin(QWidget):
                 widget.setSizePolicy(0, 0)
                 widget.setEnabled(False)
 
-        self.commandlayout.addWidget(rabbit_box)
+        self.commandLayout.addWidget(rabbit_box)
 
-    def init_exportlayout(self):
+    ''' In commandLayout - Initialization of the "Export" section'''
+    def init_exportlayout(self) -> None:
         exportlayout = QGridLayout()
         export_box = QGroupBox("Export", self)
         export_box.setFixedSize(300, 60)
@@ -213,9 +239,10 @@ class RabbitWin(QWidget):
             if isinstance(widget, QPushButton):
                 widget.setSizePolicy(0, 0)
                 widget.setEnabled(False)
-        self.commandlayout.addWidget(export_box)
+        self.commandLayout.addWidget(export_box)
 
-    def init_plotbtnlayout(self):
+    ''' In commandLayout - Initialization of the "Plot" section'''
+    def init_plotbtnlayout(self) -> None:
         plotbtnlayout = QGridLayout()
         plotbtn_box = QGroupBox("Plot", self)
         plotbtn_box.setFixedSize(300, 60)
@@ -231,19 +258,19 @@ class RabbitWin(QWidget):
             if isinstance(widget, QPushButton):
                 widget.setSizePolicy(0, 0)
                 widget.setEnabled(False)
-        self.commandlayout.addWidget(plotbtn_box)
+        self.commandLayout.addWidget(plotbtn_box)
 
-    def init_graphlayout(self):
-        self.rab_widget = ow.plot3DWidget(self)
-
+    ''' In graphLayout - Initialization of the 3 figures'''
+    def init_graphlayout(self) -> None:
+        self.rab_widget = ow.plot3DWidget(self) # new class defined in other_widgets.py
         self.rab_widget.xlabel = "E (eV)"
         self.rab_widget.ylabel = "t (fs)"
 
         self.graphlayout.addWidget(self.rab_widget)
 
         self.phaseFTlayout = QHBoxLayout()
-
         self.phaselayout = QVBoxLayout()
+
         phase_fig = Figure(figsize=(2, 2), dpi=100)
         self.phase_fc = FigureCanvas(phase_fig)
         self.phase_fc.setSizePolicy(1, 0)
@@ -266,11 +293,9 @@ class RabbitWin(QWidget):
 
         self.graphlayout.addLayout(self.phaseFTlayout)
 
-    def importcalib_lr(self):
-        """From a calibration file, loads afit, t0fit, cfit and the first harmonic
-        :argument: None
-        :return: None
-        """
+    ''' From a calibration file, loading afit, t0fit, cfit and the first harmonic'''
+    def importcalib_lr(self) -> None:
+
         calib_fname = QFileDialog.getOpenFileName(self, 'Import calibration')
         calib_f = calib_fname[0]
         if (calib_f):
@@ -289,7 +314,9 @@ class RabbitWin(QWidget):
                 except ValueError:
                     print("Incorrect calibration data")
 
-    def importdata_lr(self):
+    ''' "Import data" listener. Loads all the tof files, one by one, converts them to energy and regroup them into the
+    cts.rabbit_mat array'''
+    def importdata_lr(self) -> None:
         data_f = QFileDialog.getOpenFileName(self, 'Import data')
         data_filename = data_f[0]
 
@@ -341,7 +368,8 @@ class RabbitWin(QWidget):
             else:
                 self.window().statusBar().showMessage("Incorrect directory")
 
-    def importrabparam_lr(self):
+    ''' "Import RABBIT param" button listener. Loads RABBIT parameters from file'''
+    def importrabparam_lr(self) -> None:
         rabp_fname = QFileDialog.getOpenFileName(self, 'Import RABBIT parameters')
         rabp_f = rabp_fname[0]
         if (rabp_f):
@@ -365,7 +393,8 @@ class RabbitWin(QWidget):
             except ValueError:
                 self.window().statusBar().showMessage("Incorrect RABBIT parameters file")
 
-    def importrab_lr(self):
+    ''' "Import Rabbit" button listener. Loads RABBIT trace from file'''
+    def importrab_lr(self) -> None:
         rab_fname = QFileDialog.getOpenFileName(self, 'Import RABBIT counts')
         rab_f = rab_fname[0]
         if (rab_f):
@@ -391,7 +420,8 @@ class RabbitWin(QWidget):
             except TypeError:
                 self.window().statusBar().showMessage("Incorrect RABBIT counts file")
 
-    def importXUV_lr(self):
+    ''' "Import XUV only" button listener. Loads XUV only from file (it is converted from tof to energy)'''
+    def importXUV_lr(self) -> None:
         self.update_envect_fn()
         xuv_fname = QFileDialog.getOpenFileName(self, "Import XUV only")
         xuv_f = xuv_fname[0]
@@ -413,7 +443,8 @@ class RabbitWin(QWidget):
             except ValueError:
                 self.window().statusBar().showMessage("Incorrect XUV only file")
 
-    def smoothrab_lr(self):
+    ''' "smooth RABBIT" button listener'''
+    def smoothrab_lr(self) -> None:
         try:
             sm = int(self.smooth_le.text())
             for i in range(cts.stepsnb):
@@ -431,7 +462,8 @@ class RabbitWin(QWidget):
         except ValueError:
             self.window().statusBar().showMessage("Smooth must be an integer")
 
-    def normalizerab_lr(self):
+    ''' "normalize RABBIT" button listener'''
+    def normalizerab_lr(self) -> None:
         for i in range(cts.stepsnb):
             cts.rabbit_mat[i, :] = cts.rabbit_mat[i, :] / cts.rabbit_mat[i, :].sum()
         self.rab_widget.colorauto_cb.setCheckState(Qt.Checked)
@@ -1043,7 +1075,7 @@ class FTContrastWin(QDialog):
         self.init_FTlayout()
         self.init_peaksTable()
 
-        self.mainlayout.addLayout(self.commandlayout)
+        self.mainlayout.addLayout(self.commandLayout)
         self.setLayout(self.mainlayout)
         self.show()
 
@@ -1106,7 +1138,7 @@ class FTContrastWin(QDialog):
         self.refreshplot_fn()
 
     def init_two_wlayout(self):
-        self.commandlayout = QVBoxLayout()
+        self.commandLayout = QVBoxLayout()
 
         self.two_wlayout = QGridLayout()
         self.two_w_box = QGroupBox()
@@ -1140,7 +1172,7 @@ class FTContrastWin(QDialog):
         self.two_wlayout.addWidget(self.two_w_btn, 1, 4)
 
         self.two_w_box.setLayout(self.two_wlayout)
-        self.commandlayout.addWidget(self.two_w_box)
+        self.commandLayout.addWidget(self.two_w_box)
 
     def init_FTlayout(self):
         self.FTlayout = QGridLayout()
@@ -1182,13 +1214,13 @@ class FTContrastWin(QDialog):
         self.FTlayout.addWidget(self.FT_btn, 1, 4)
 
         self.FT_box.setLayout(self.FTlayout)
-        self.commandlayout.addWidget(self.FT_box)
+        self.commandLayout.addWidget(self.FT_box)
 
     def init_peaksTable(self):
         self.peaksTable = QTableWidget()
         self.peaksTable.setSelectionBehavior(QTableView.SelectRows)
 
-        self.commandlayout.addWidget(self.peaksTable)
+        self.commandLayout.addWidget(self.peaksTable)
 
         self.refreshTable_fn()
 
@@ -1413,7 +1445,7 @@ class RainbowWin(QDialog):
         self.mainlayout.addLayout(self.graphlayout)
 
     def init_commandlayout(self):
-        self.commandlayout = QHBoxLayout()
+        self.commandLayout = QHBoxLayout()
 
         self.subattochirp_btn = QPushButton("Sub. achirp", self)
         self.reset_btn = QPushButton("reset", self)
@@ -1423,10 +1455,10 @@ class RainbowWin(QDialog):
         self.reset_btn.clicked.connect(self.reset_lr)
         self.export_btn.clicked.connect(self.export_lr)
 
-        self.commandlayout.addWidget(self.subattochirp_btn)
-        self.commandlayout.addWidget(self.reset_btn)
-        self.commandlayout.addWidget(self.export_btn)
-        self.mainlayout.addLayout(self.commandlayout)
+        self.commandLayout.addWidget(self.subattochirp_btn)
+        self.commandLayout.addWidget(self.reset_btn)
+        self.commandLayout.addWidget(self.export_btn)
+        self.mainlayout.addLayout(self.commandLayout)
 
     def subattochirp_lr(self):
         hnu = cts.HEV * cts.cur_nu
@@ -1556,7 +1588,7 @@ class SBvsDelayWin(QDialog):
         self.mainlayout.addLayout(self.graphlayout)
 
     def init_commandlayout(self):
-        self.commandlayout = QVBoxLayout()
+        self.commandLayout = QVBoxLayout()
 
         fig = Figure(figsize=(4, 3), dpi=100)
         self.contrast_fc = FigureCanvas(fig)
@@ -1565,16 +1597,16 @@ class SBvsDelayWin(QDialog):
         nav = NavigationToolbar2QT(self.contrast_fc, self)
         nav.setStyleSheet("QToolBar { border: 0px }")
 
-        self.commandlayout.addWidget(self.contrast_fc)
-        self.commandlayout.addWidget(nav)
+        self.commandLayout.addWidget(self.contrast_fc)
+        self.commandLayout.addWidget(nav)
 
         self.contrastTable = QTableWidget()
         self.contrastTable.setSelectionBehavior(QTableView.SelectRows)
         self.contrastTable.horizontalHeader().setDefaultSectionSize(90)
         self.contrastTable.verticalHeader().setDefaultSectionSize(30)
 
-        self.commandlayout.addWidget(self.contrastTable)
-        self.mainlayout.addLayout(self.commandlayout)
+        self.commandLayout.addWidget(self.contrastTable)
+        self.mainlayout.addLayout(self.commandLayout)
 
     def refreshTable_fn(self):
         self.contrastTable.clear()
