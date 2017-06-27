@@ -21,7 +21,7 @@ RFANO_HE = 60.15 # Helium
 RFANO_AR = 26.6 # Argon
 
 ###### GLOBAL VARIABLES ###########
-''' Global means here the variables shared by the different widgets in the program'''
+''' Global means here the variables shared by the different objects in the program'''
 #energy calibration
 afit = 0.0
 t0fit = 0.0
