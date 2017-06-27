@@ -569,7 +569,7 @@ class CalibWin(QWidget):
         except ValueError:
             print('incorrect value for find local maxima paramaters')
 
-    ''' "TOF to energy" button listener '''
+    ''' ANALYSIS - "TOF to energy" button listener '''
     def tof2en_lr(self) -> None:
         if self.calibloaded:
             self.p_opt = [0, 0, 0]

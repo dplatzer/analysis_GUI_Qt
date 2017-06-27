@@ -314,7 +314,7 @@ class RabbitWin(QWidget):
                 except ValueError:
                     print("Incorrect calibration data")
 
-    ''' "Import data" listener. Loads all the tof files, one by one, converts them to energy and regroup them into the
+    ''' "[Import] data" listener. Loads all the tof files, one by one, converts them to energy and regroup them into the
     cts.rabbit_mat array'''
     def importdata_lr(self) -> None:
         data_f = QFileDialog.getOpenFileName(self, 'Import data')
@@ -368,7 +368,7 @@ class RabbitWin(QWidget):
             else:
                 self.window().statusBar().showMessage("Incorrect directory")
 
-    ''' "Import RABBIT param" button listener. Loads RABBIT parameters from file'''
+    ''' "[Import] RABBIT param" button listener. Loads RABBIT parameters from file'''
     def importrabparam_lr(self) -> None:
         rabp_fname = QFileDialog.getOpenFileName(self, 'Import RABBIT parameters')
         rabp_f = rabp_fname[0]
@@ -393,7 +393,7 @@ class RabbitWin(QWidget):
             except ValueError:
                 self.window().statusBar().showMessage("Incorrect RABBIT parameters file")
 
-    ''' "Import Rabbit" button listener. Loads RABBIT trace from file'''
+    ''' "[Import] Rabbit" button listener. Loads RABBIT trace from file'''
     def importrab_lr(self) -> None:
         rab_fname = QFileDialog.getOpenFileName(self, 'Import RABBIT counts')
         rab_f = rab_fname[0]
@@ -420,7 +420,7 @@ class RabbitWin(QWidget):
             except TypeError:
                 self.window().statusBar().showMessage("Incorrect RABBIT counts file")
 
-    ''' "Import XUV only" button listener. Loads XUV only from file (it is converted from tof to energy)'''
+    ''' "[Import] XUV only" button listener. Loads XUV only from file (it is converted from tof to energy)'''
     def importXUV_lr(self) -> None:
         self.update_envect_fn()
         xuv_fname = QFileDialog.getOpenFileName(self, "Import XUV only")
@@ -504,7 +504,7 @@ class RabbitWin(QWidget):
         cts.xuvsubstracted = False
         sw = subXUVWin(self) # new class defined below
 
-    '''ANALYSIS - "Normal RABBIT" button listener'''
+    ''' ANALYSIS - "Normal RABBIT" button listener'''
     def normalrab_lr(self) -> None:
         try:
             cts.rabbitmode = "normal"
@@ -590,7 +590,7 @@ class RabbitWin(QWidget):
         except:
             print(traceback.format_exception(*sys.exc_info()))
 
-    '''ANALYSIS - "Rainbow RABBIT" button listener'''
+    ''' ANALYSIS - "Rainbow RABBIT" button listener'''
     def rainbowrab_lr(self) -> None:
         try:
             cts.rabbitmode = "rainbow"
@@ -686,7 +686,7 @@ class RabbitWin(QWidget):
         except Exception:
             print(traceback.format_exception(*sys.exc_info()))
 
-    ''' "SB vs delay" button listener. Opens a new window'''
+    ''' "[plot] SB vs delay" button listener. Opens a new window'''
     def plotSBvsdelay_lr(self) -> None:
         try:
             w = SBvsDelayWin(self) # new class defined below
@@ -712,7 +712,7 @@ class RabbitWin(QWidget):
         self.ehigh_le.setText("{:.2f}".format(cts.ehigh))
         self.window().updateglobvar_fn()
 
-    ''' "Export RABBIT" btn listener. Saves the rabbit in two files: *_counts for the data and *_param for 
+    ''' "[Export] RABBIT" button listener. Saves the rabbit in two files: *_counts for the data and *_param for 
     the parameters'''
     def exportrab_lr(self) -> None:
         rab_fname = QFileDialog.getSaveFileName(self)
@@ -744,6 +744,7 @@ class RabbitWin(QWidget):
         self.rab_widget.colorauto_cb.setEnabled(False)
         self.rab_widget.logscale_cb.setEnabled(False)
 
+''' created when clicking on the "Select bands" button'''
 class selectBandsWin(QDialog):
     def __init__(self, parent=RabbitWin):
         super(selectBandsWin, self).__init__(parent)
@@ -758,6 +759,7 @@ class selectBandsWin(QDialog):
         self.setLayout(self.layout)
         self.show()
 
+''' used in the "selectBandsWin" object above'''
 class selectBandsPlotWin(ow.plot3DWidget):
     def __init__(self, parent) -> None:
         super(selectBandsPlotWin, self).__init__(parent)
@@ -969,6 +971,8 @@ class selectBandsPlotWin(ow.plot3DWidget):
         self.parent().destroy()
 
 #I define these classes here so the class RabbitWin doesn't have to be called from another module.
+
+''' created when clicking on the "Substract XUV" button"'''
 class subXUVWin(QDialog):
     def __init__(self, parent=RabbitWin) -> None:
         super(subXUVWin, self).__init__(parent)
@@ -1069,6 +1073,7 @@ class subXUVWin(QDialog):
         cts.xuvsubstracted = True
         self.parent().destroy()
 
+''' created when clicking on the "FT/Contrast" button'''
 class FTContrastWin(QDialog):
     def __init__(self, parent=RabbitWin) -> None:
         super(FTContrastWin, self).__init__(parent)
@@ -1416,6 +1421,7 @@ class FTContrastWin(QDialog):
     def keyPressEvent(self, event) -> None:
         key = event.key()
 
+''' created at the end of the Rainbow Rabbit Treatment'''
 class RainbowWin(QDialog):
     def __init__(self, parent=RabbitWin) -> None:
         super(RainbowWin, self).__init__(parent)
@@ -1538,6 +1544,7 @@ class RainbowWin(QDialog):
                           self.par.energy_rainbow/hnu + self.par.pa[1])
         self.fc.draw()
 
+''' created when clicking on the "[plot] SB vs delay" button'''
 class SBvsDelayWin(QDialog):
     def __init__(self, parent=RabbitWin) -> None:
         super(SBvsDelayWin, self).__init__(parent)
@@ -1674,7 +1681,6 @@ class SBvsDelayWin(QDialog):
 
     def cosfit_fn(self, delay, a0, a1, phi) -> float:
         return float(a0 + a1 * np.cos(2* cts.fpeak_main * np.pi * cts.cur_nu * delay * 1e-15 + phi))
-
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
