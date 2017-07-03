@@ -367,7 +367,10 @@ class CalibWin(QWidget):
         self.en_ax = self.en_fc.figure.add_subplot(111)
         self.en_ax.tick_params(labelsize = 8)
         self.en_fc.draw()
+        en_nav = NavigationToolbar2QT(self.en_fc, self)
+        en_nav.setStyleSheet("QToolBar { border: 0px }")
         ga2layout.addWidget(self.en_fc)
+        ga2layout.addWidget(en_nav)
 
         graphauxlayout.addLayout(ga1layout)
         graphauxlayout.addLayout(ga2layout)

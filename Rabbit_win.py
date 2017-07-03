@@ -1070,8 +1070,9 @@ class subXUVWin(QDialog):
 
     def done_lr(self) -> None:
         self.parent().window().updateglobvar_fn()
+        self.parent().rab_widget.refreshplot_fn(cts.energy_vect, cts.delay_vect, cts.rabbitxuvsub_mat)
         cts.xuvsubstracted = True
-        self.parent().destroy()
+        self.destroy()
 
 ''' created when clicking on the "FT/Contrast" button'''
 class FTContrastWin(QDialog):
