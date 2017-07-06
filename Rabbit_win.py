@@ -276,8 +276,11 @@ class RabbitWin(QWidget):
         self.phase_fc.setSizePolicy(1, 0)
         self.phase_ax = self.phase_fc.figure.add_subplot(111)
         self.phase_ax.tick_params(labelsize = 8)
-        self.phase_fc.draw()
+        nav = NavigationToolbar2QT(self.phase_fc, self)
+        nav.setStyleSheet("QToolBar { border: 0px }")
         self.phaselayout.addWidget(self.phase_fc)
+        self.phaselayout.addWidget(nav)
+        self.phase_fc.draw()
 
         self.FTlayout = QVBoxLayout()
         FT_fig = Figure(figsize=(2, 2), dpi=100)
@@ -285,8 +288,11 @@ class RabbitWin(QWidget):
         self.FT_fc.setSizePolicy(1, 0)
         self.FT_ax = self.FT_fc.figure.add_subplot(111)
         self.FT_ax.tick_params(labelsize = 8)
-        self.FT_fc.draw()
+        nav2 = NavigationToolbar2QT(self.FT_fc, self)
+        nav2.setStyleSheet("QToolBar { border: 0px }")
         self.FTlayout.addWidget(self.FT_fc)
+        self.FTlayout.addWidget(nav2)
+        self.FT_fc.draw()
 
         self.phaseFTlayout.addLayout(self.phaselayout)
         self.phaseFTlayout.addLayout(self.FTlayout)
@@ -583,8 +589,8 @@ class RabbitWin(QWidget):
             self.phase_ax.plot(sborder, attochirp, 'k')
             self.phase_fc.draw()
 
-            cts.chirp_as = self.pa[0]/(cts.cur_nu * 2*np.pi) * 1e18
-            cts.chirp_as_eV = float(cts.chirp_as/hnu)
+            cts.chirp_as = self.pa[0]/(cts.cur_nu * 2*np.pi)/2 * 1e18
+            cts.chirp_as_eV = float(cts.chirp_as/(hnu))
 
             self.rainbowrab_btn.setEnabled(True)
             self.FTcontrast_btn.setEnabled(True)
