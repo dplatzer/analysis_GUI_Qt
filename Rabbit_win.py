@@ -276,8 +276,11 @@ class RabbitWin(QWidget):
         self.phase_fc.setSizePolicy(1, 0)
         self.phase_ax = self.phase_fc.figure.add_subplot(111)
         self.phase_ax.tick_params(labelsize = 8)
-        self.phase_fc.draw()
+        nav = NavigationToolbar2QT(self.phase_fc, self)
+        nav.setStyleSheet("QToolBar { border: 0px }")
         self.phaselayout.addWidget(self.phase_fc)
+        self.phaselayout.addWidget(nav)
+        self.phase_fc.draw()
 
         self.FTlayout = QVBoxLayout()
         FT_fig = Figure(figsize=(2, 2), dpi=100)
@@ -285,8 +288,11 @@ class RabbitWin(QWidget):
         self.FT_fc.setSizePolicy(1, 0)
         self.FT_ax = self.FT_fc.figure.add_subplot(111)
         self.FT_ax.tick_params(labelsize = 8)
-        self.FT_fc.draw()
+        nav2 = NavigationToolbar2QT(self.FT_fc, self)
+        nav2.setStyleSheet("QToolBar { border: 0px }")
         self.FTlayout.addWidget(self.FT_fc)
+        self.FTlayout.addWidget(nav2)
+        self.FT_fc.draw()
 
         self.phaseFTlayout.addLayout(self.phaselayout)
         self.phaseFTlayout.addLayout(self.FTlayout)
@@ -520,6 +526,10 @@ class RabbitWin(QWidget):
             self.peak = np.zeros(cts.bandsnb)
             self.peak_phase = []
             i = 0
+            if cts.xuvsubstracted:
+                signal = cts.rabbitxuvsub_mat
+            else:
+                signal = cts.rabbit_mat
 
             jx = []
             for xi, xf in cts.bands_vect:
@@ -528,7 +538,7 @@ class RabbitWin(QWidget):
                 jx.append([ji, jf])
 
             for ji, jf in jx[:]:
-                x_data = np.trapz(cts.rabbit_mat[:, ji:jf], cts.energy_vect[ji:jf], axis=1)
+                x_data = np.trapz(signal[:, ji:jf], cts.energy_vect[ji:jf], axis=1)
                 fpeak, peak, peak_phase = af.find_2w(x_data, cts.scanstep_fs)
                 self.freqnorm, ampl, ang = af.FFT(x_data, cts.scanstep_fs)
                 ampl = np.array(ampl)
@@ -579,8 +589,8 @@ class RabbitWin(QWidget):
             self.phase_ax.plot(sborder, attochirp, 'k')
             self.phase_fc.draw()
 
-            cts.chirp_as = self.pa[0]/(cts.cur_nu * 2*np.pi) * 1e18
-            cts.chirp_as_eV = float(cts.chirp_as/hnu)
+            cts.chirp_as = self.pa[0]/(cts.cur_nu * 2*np.pi)/2 * 1e18
+            cts.chirp_as_eV = float(cts.chirp_as/(hnu))
 
             self.rainbowrab_btn.setEnabled(True)
             self.FTcontrast_btn.setEnabled(True)
@@ -613,10 +623,15 @@ class RabbitWin(QWidget):
                 jx.append([ji, jf])
             jx = np.array(jx)
 
+            if cts.xuvsubstracted:
+                signal = cts.rabbitxuvsub_mat
+            else:
+                signal = cts.rabbit_mat
+
             j=0
             for ii, jj in jx[:]:
                 for x in range(ii,jj):
-                    x_data = cts.rabbit_mat[:, x]
+                    x_data = signal[:, x]
                     f2om, peak, peak_phase = af.find_2w(x_data, cts.scanstep_fs)
                     self.freqnorm, ampl, ang =  af.FFT(x_data, cts.scanstep_fs)
 
@@ -980,6 +995,7 @@ class subXUVWin(QDialog):
         #self.layout.setContentsMargins(0, 0, 0, 0)
         self.setWindowFlags(Qt.Window)
 
+        cts.xuvsubstracted = False
         self.init_layout()
         self.rabgraph.refreshplot_fn(cts.energy_vect, cts.delay_vect, cts.rabbit_mat)
 
@@ -1048,6 +1064,8 @@ class subXUVWin(QDialog):
 
             self.rabgraph.refreshplot_fn(signal=cts.rabbitxuvsub_mat)
 
+            cts.xuvsubstracted = True
+
             self.ax2.set_xlabel("E (eV)")
             self.ax2.set_ylabel("t (fs)")
             integral_original = np.trapz(cts.rabbit_mat[:,:], axis=0)
@@ -1070,8 +1088,12 @@ class subXUVWin(QDialog):
 
     def done_lr(self) -> None:
         self.parent().window().updateglobvar_fn()
-        cts.xuvsubstracted = True
-        self.parent().destroy()
+        if cts.xuvsubstracted:
+            self.parent().rab_widget.refreshplot_fn(cts.energy_vect, cts.delay_vect, cts.rabbitxuvsub_mat)
+        else:
+            self.parent().rab_widget.refreshplot_fn(cts.energy_vect, cts.delay_vect, cts.rabbit_mat)
+
+        self.destroy()
 
 ''' created when clicking on the "FT/Contrast" button'''
 class FTContrastWin(QDialog):
@@ -1598,8 +1620,18 @@ class SBvsDelayWin(QDialog):
         nav = NavigationToolbar2QT(self.fc, self)
         nav.setStyleSheet("QToolBar { border: 0px }")
 
+        self.checkbox_layout = QHBoxLayout()
+        self.checkbox_table = []
+        for i in range(cts.bandsnb):
+            cb = QCheckBox(str(cts.first_harm + 2*i +1), self)
+            cb.setCheckState(Qt.Checked)
+            cb.stateChanged.connect(self.refreshplot_fn)
+            self.checkbox_layout.addWidget(cb)
+            self.checkbox_table.append(cb)
+
         self.graphlayout.addWidget(self.fc)
         self.graphlayout.addWidget(nav)
+        self.graphlayout.addLayout(self.checkbox_layout)
 
         self.mainlayout.addLayout(self.graphlayout)
 
@@ -1636,8 +1668,8 @@ class SBvsDelayWin(QDialog):
 
         for i in range(cts.bandsnb):
             self.contrastTable.setItem(i + 1, 0, QTableWidgetItem(str(cts.contrast[i, 0])))
-            self.contrastTable.setItem(i + 1, 1, QTableWidgetItem("{:.3e}".format(cts.contrast[i, 1])))
-            self.contrastTable.setItem(i + 1, 2, QTableWidgetItem("{:.3e}".format(cts.contrast[i, 2])))
+            self.contrastTable.setItem(i + 1, 1, QTableWidgetItem("{:.3f}".format(cts.contrast[i, 1])))
+            self.contrastTable.setItem(i + 1, 2, QTableWidgetItem("{:.3f}".format(cts.contrast[i, 2])))
 
         w = 0
         for i in range(self.contrastTable.columnCount()):
@@ -1649,38 +1681,42 @@ class SBvsDelayWin(QDialog):
         self.contrastTable.setFixedWidth(w + 20)
 
     def refreshplot_fn(self) -> None:
-        self.ax.cla()
-        self.ax.set_xlabel("delay", fontsize=10)
-        self.ax.set_ylabel("SB Intensity", fontsize=10)
+       try:
+            self.ax.cla()
+            self.ax.set_xlabel("delay", fontsize=10)
+            self.ax.set_ylabel("SB Intensity", fontsize=10)
 
-        for i in range(cts.bandsnb):
-            self.ax.plot(cts.delay_vect, self.SB[i,:], label="SB%d" % (cts.first_harm + 2 * i))
+            for i in range(cts.bandsnb):
+                if self.checkbox_table[i].isChecked():
+                    self.ax.plot(cts.delay_vect, self.SB[i,:], label="SB%d" % (cts.first_harm + 2 * i + 1))
 
-        leg = self.ax.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
-                              ncol=7, mode="expand", borderaxespad=0.)
-        for label in leg.get_texts():
-            label.set_fontsize(8)
-        for label in leg.get_lines():
-            label.set_linewidth(1)
+            leg = self.ax.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+                                  ncol=7, mode="expand", borderaxespad=0.)
+            for label in leg.get_texts():
+                label.set_fontsize(8)
+            for label in leg.get_lines():
+                label.set_linewidth(1)
 
-        self.fc.draw()
+            self.fc.draw()
 
-        self.contrast_ax.cla()
-        self.contrast_ax.set_xlabel("SB order", fontsize=10)
-        self.contrast_ax.set_ylabel("Contrast", fontsize=10)
+            self.contrast_ax.cla()
+            self.contrast_ax.set_xlabel("SB order", fontsize=10)
+            self.contrast_ax.set_ylabel("Contrast", fontsize=10)
 
-        self.contrast_ax.plot(cts.contrast[:, 0], cts.contrast[:, 1], 'rs', label="cos fit")
-        self.contrast_ax.plot(cts.contrast[:, 0], cts.contrast[:, 2], 'b+', label="FT fit")
+            self.contrast_ax.plot(cts.contrast[:, 0], cts.contrast[:, 1], 'rs', label="cos fit")
+            self.contrast_ax.plot(cts.contrast[:, 0], cts.contrast[:, 2], 'b+', label="FT fit")
 
-        contrast_leg = self.contrast_ax.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
-                              ncol=7, mode="expand", borderaxespad=0.)
-        for label in contrast_leg.get_texts():
-            label.set_fontsize(8)
-        for label in contrast_leg.get_lines():
-            label.set_linewidth(1)
+            contrast_leg = self.contrast_ax.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+                                  ncol=7, mode="expand", borderaxespad=0.)
+            for label in contrast_leg.get_texts():
+                label.set_fontsize(8)
+            for label in contrast_leg.get_lines():
+                label.set_linewidth(1)
+       except Exception:
+           print(traceback.format_exception(*sys.exc_info()))
 
-    def cosfit_fn(self, delay, a0, a1, phi) -> float:
-        return float(a0 + a1 * np.cos(2* cts.fpeak_main * np.pi * cts.cur_nu * delay * 1e-15 + phi))
+    def cosfit_fn(self, delay, a0, a1, phi):
+        return a0 + a1 * np.cos(2* cts.fpeak_main * np.pi * cts.cur_nu * delay * 1e-15 + phi)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
