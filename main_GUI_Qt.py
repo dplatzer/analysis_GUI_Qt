@@ -1,4 +1,5 @@
 """The program has to be runned here"""
+
 import sys
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QApplication, QTabWidget, QHBoxLayout, QMainWindow, QSplitter, QTableWidget
