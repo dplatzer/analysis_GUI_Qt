@@ -1,4 +1,7 @@
-env/
+.idea/misc.xml
+.idea/analysis_GUI_Qt.iml
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
