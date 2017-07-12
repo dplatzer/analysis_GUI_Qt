@@ -1,5 +1,5 @@
 """The program has to be runned here"""
-
+"""Difference between develop and master"""
 import sys
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QApplication, QTabWidget, QHBoxLayout, QMainWindow, QSplitter, QTableWidget
