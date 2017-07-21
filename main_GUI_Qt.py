@@ -1,3 +1,4 @@
+'''Master Branch'''
 """The program has to be runned here"""
 
 import sys
