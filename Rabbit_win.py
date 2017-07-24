@@ -898,7 +898,7 @@ class selectBandsPlotWin(ow.plot3DWidget):
                 xdata = cts.rabbitxuvsub_mat[:, x]
             else:
                 xdata = cts.rabbit_mat[:, x]
-                
+
             f2om, peak, peak_phase = af.find_2w(xdata, cts.scanstep_fs)
             self.freqnorm, ampl, ang = af.FFT(xdata, cts.scanstep_fs)
             self.ampl_rainbow.append(ampl / ampl.max())
