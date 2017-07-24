@@ -894,7 +894,11 @@ class selectBandsPlotWin(ow.plot3DWidget):
         self.energy_rainbow = []
 
         for x in range(cts.energy_vect.shape[0]):
-            xdata = cts.rabbit_mat[:, x]
+            if cts.xuvsubstracted:
+                xdata = cts.rabbitxuvsub_mat[:, x]
+            else:
+                xdata = cts.rabbit_mat[:, x]
+
             f2om, peak, peak_phase = af.find_2w(xdata, cts.scanstep_fs)
             self.freqnorm, ampl, ang = af.FFT(xdata, cts.scanstep_fs)
             self.ampl_rainbow.append(ampl / ampl.max())
