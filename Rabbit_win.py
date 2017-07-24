@@ -515,8 +515,8 @@ class RabbitWin(QWidget):
         try:
             cts.rabbitmode = "normal"
             self.FT_ax.cla()
-            self.FT_ax.set_xlabel("frequency (units of f0)")
-            self.FT_ax.set_ylabel("normalized amplitude (arb. u.)")
+            self.FT_ax.set_xlabel("freq")
+            self.FT_ax.set_ylabel("ampl")
 
             hnu = cts.HEV * cts.cur_nu
             self.SBi = cts.first_harm + 1
@@ -583,8 +583,8 @@ class RabbitWin(QWidget):
             attochirp = self.pa[0]*sborder + self.pa[1]
 
             self.phase_ax.cla()
-            self.phase_ax.set_xlabel("Harmonic order")
-            self.phase_ax.set_ylabel("Phase (rad)")
+            self.phase_ax.set_xlabel("SB")
+            self.phase_ax.set_ylabel("Phase Diff")
             self.phase_ax.plot(sborder, cts.peak_phase, 'm', marker = 's')
             self.phase_ax.plot(sborder, attochirp, 'k')
             self.phase_fc.draw()
