@@ -1602,6 +1602,10 @@ class SBvsDelayWin(QDialog):
             x_data = np.trapz(cts.rabbit_mat[:, ji:jf], cts.energy_vect[ji:jf], axis=1)
             self.SB.append(x_data)
         self.SB = np.array(self.SB)
+        self.a0 = []
+        self.a1 = []
+        self.phi = []
+
 
         for i in range(cts.bandsnb):
             popt, pcov = opt.curve_fit(self.cosfit_fn, cts.delay_vect, self.SB[i,:], np.array([1e-11, 1e-12, 0]))
@@ -1611,7 +1615,11 @@ class SBvsDelayWin(QDialog):
                 popt[2] = popt[2] + np.pi
 
             cts.contrast[i, 1] = popt[1] / popt[0]
+            self.a0.append(popt[0])
+            self.a1.append(popt[1])
+            self.phi.append(popt[2])
 
+        print(self.a1)
         self.parent().window().updateglobvar_fn()
 
     def init_graphlayout(self) -> None:
@@ -1624,14 +1632,23 @@ class SBvsDelayWin(QDialog):
         nav = NavigationToolbar2QT(self.fc, self)
         nav.setStyleSheet("QToolBar { border: 0px }")
 
-        self.checkbox_layout = QHBoxLayout()
+        self.checkbox_layout = QGridLayout()
         self.checkbox_table = []
         for i in range(cts.bandsnb):
             cb = QCheckBox(str(cts.first_harm + 2*i +1), self)
+            cb2 = QCheckBox((str(cts.first_harm + 2*i +1) + "_cosfit"), self)
+
             cb.setCheckState(Qt.Checked)
+            cb2.setCheckState(Qt.Unchecked)
+
             cb.stateChanged.connect(self.refreshplot_fn)
-            self.checkbox_layout.addWidget(cb)
+            cb2.stateChanged.connect(self.refreshplot_fn)
+
+            self.checkbox_layout.addWidget(cb, 0, i)
+            self.checkbox_layout.addWidget(cb2, 1, i)
+
             self.checkbox_table.append(cb)
+            self.checkbox_table.append(cb2)
 
         self.graphlayout.addWidget(self.fc)
         self.graphlayout.addWidget(nav)
@@ -1690,9 +1707,12 @@ class SBvsDelayWin(QDialog):
             self.ax.set_xlabel("delay", fontsize=10)
             self.ax.set_ylabel("SB Intensity", fontsize=10)
 
-            for i in range(cts.bandsnb):
-                if self.checkbox_table[i].isChecked():
-                    self.ax.plot(cts.delay_vect, self.SB[i,:], label="SB%d" % (cts.first_harm + 2 * i + 1))
+            for i in range(2*cts.bandsnb):
+                if self.checkbox_table[i].isChecked() and i%2 == 0:
+                    self.ax.plot(cts.delay_vect, self.SB[i//2,:], label="SB%d" % (cts.first_harm + 2 * i//2 + 1))
+                if self.checkbox_table[i].isChecked() and i%2 != 0:
+                    self.ax.plot(cts.delay_vect, self.cosfit_fn(cts.delay_vect, self.a0[i//2], self.a1[i//2], self.phi[i//2]),
+                                 label="SB%d_cosfit" % (cts.first_harm + 2 * i//2 + 1))
 
             leg = self.ax.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
                                   ncol=7, mode="expand", borderaxespad=0.)
