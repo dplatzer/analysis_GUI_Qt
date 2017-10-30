@@ -900,6 +900,7 @@ class selectBandsPlotWin(ow.plot3DWidget):
 
     def selectmode_fn(self) -> None:
         if self.selectmode == "manual":
+            self.clickcount = 0
             cts.bands_vect = np.zeros([cts.bandsnb, 2])
             self.FTthreshold_le.setEnabled(False)
             self.theorythreshold_le.setEnabled(False)
