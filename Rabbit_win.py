@@ -13,7 +13,7 @@ from scipy import optimize as opt
 import glob_var as cts
 import analysis_functions as af
 import other_widgets as ow
-"""test"""
+
 class RabbitWin(QWidget):
     """ Rabbit window
 
@@ -826,13 +826,23 @@ class selectBandsPlotWin(ow.plot3DWidget):
         self.FTselect_rb.value = "FT"
         self.FTselect_rb.toggled.connect(self.selectmode_lr)
 
+        self.theoryselect_rb = QRadioButton("theory", self)
+        self.theoryselect_rb.value = "theory"
+        self.theoryselect_rb.toggled.connect(self.selectmode_lr)
+
         self.selectmode_bg.addButton(self.manualselect_rb)
         self.selectmode_bg.addButton(self.FTselect_rb)
+        self.selectmode_bg.addButton(self.theoryselect_rb)
 
         self.FTthreshold_le = QLineEdit("0.2", self)
         self.FTthreshold_le.setSizePolicy(0, 0)
         self.FTthreshold_le.setFixedSize(60, 20)
         self.FTthreshold_le.returnPressed.connect(self.FTselect_fn)
+
+        self.theorythreshold_le = QLineEdit("0.3", self)
+        self.theorythreshold_le.setSizePolicy(0, 0)
+        self.theorythreshold_le.setFixedSize(60, 20)
+        self.theorythreshold_le.returnPressed.connect(self.theoryselect_fn)
 
         self.done_btn = QPushButton("Done", self)
         self.done_btn.setSizePolicy(0, 0)
@@ -851,6 +861,8 @@ class selectBandsPlotWin(ow.plot3DWidget):
         self.paramlayout.addWidget(self.manualselect_rb)
         self.paramlayout.addWidget(self.FTselect_rb)
         self.paramlayout.addWidget(self.FTthreshold_le)
+        self.paramlayout.addWidget(self.theoryselect_rb)
+        self.paramlayout.addWidget(self.theorythreshold_le)
         self.paramlayout.addStretch(1)
         self.paramlayout.addWidget(self.cancel_btn)
         self.paramlayout.addWidget(self.done_btn)
@@ -874,11 +886,18 @@ class selectBandsPlotWin(ow.plot3DWidget):
         if self.selectmode == "manual":
             cts.bands_vect = np.zeros([cts.bandsnb, 2])
             self.FTthreshold_le.setEnabled(False)
+            self.theorythreshold_le.setEnabled(False)
             self.done_btn.setEnabled(False)
             self.refreshplot_sb(value=self.value)
         elif self.selectmode == "FT":
             self.FTthreshold_le.setEnabled(True)
+            self.theorythreshold_le.setEnabled(False)
             self.FTselect_fn()
+            self.done_btn.setEnabled(True)
+        elif self.selectmode == "theory":
+            self.FTthreshold_le.setEnabled(False)
+            self.theorythreshold_le.setEnabled(True)
+            self.theoryselect_fn()
             self.done_btn.setEnabled(True)
 
     def FTselect_fn(self) -> None:
@@ -933,6 +952,20 @@ class selectBandsPlotWin(ow.plot3DWidget):
 
             cts.bands_vect[i, 0] = cts.energy_vect[xi[0] + iemin]
             cts.bands_vect[i, 1] = cts.energy_vect[xi[-1] + iemin + 1]
+
+        self.refreshplot_sb(value=self.value)
+
+    def theoryselect_fn(self) -> None:
+        hnu = cts.HEV * cts.cur_nu
+        self.SBi = cts.first_harm + 1
+
+        for i in range(cts.bandsnb):
+            ecenter = np.argmin(abs(cts.energy_vect - (self.SBi + 2 * i) * hnu))
+            emin = np.argmin(abs(cts.energy_vect - (self.SBi - float(self.theorythreshold_le.text()) + 2 * i) * hnu))
+            emax = np.argmin(abs(cts.energy_vect - (self.SBi + float(self.theorythreshold_le.text()) + 2 * i) * hnu))
+
+            cts.bands_vect[i, 0] = cts.energy_vect[emin]
+            cts.bands_vect[i, 1] = cts.energy_vect[emax + 1]
 
         self.refreshplot_sb(value=self.value)
 
