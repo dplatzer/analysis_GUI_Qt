@@ -1216,7 +1216,7 @@ class FTContrastWin(QDialog):
         self.jx = []
         for xi, xf in cts.bands_vect:
             ji = np.argmin(abs(cts.energy_vect - xi))
-            jf = np.argmin(abs(cts.energy_vect - xf))
+            jf = np.argmin(abs(cts.energy_vect - xf)) + 1
             self.jx.append([ji, jf])
 
         self.fpeak = np.array(cts.fpeak)
@@ -1359,8 +1359,12 @@ class FTContrastWin(QDialog):
            self.ang = []
            cts.FT_npad = int(self.FTpadding_le.text())
            self.FTdt_lr() # to update cts.scanstep_fs
-           for ii, jj in self.jx[:]:
-               x_data = np.trapz(cts.rabbit_mat[:, ii:jj], cts.energy_vect[ii:jj], axis=1)
+           for ji, jf in self.jx[:]:
+               if jf - ji > 1:  # if we integrate ie if we have more than one point
+                   x_data = np.trapz(cts.rabbit_mat[:, ji:jf], cts.energy_vect[ji:jf], axis=1)
+               else:
+                   x_data = cts.rabbit_mat[:, ji]
+
                self.freqnorm, ampl, ang = af.FFT(x_data, cts.scanstep_fs)
                self.ampl.append(ampl)
                self.ang.append(ang)
