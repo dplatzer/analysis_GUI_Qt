@@ -30,8 +30,6 @@ cfit = 0.0
 #experimental parameters
 cur_Ip = 0.0
 cur_nu = 0.0
-cur_Vp = 0.0
-cur_L = 0
 cur_SBi = 0
 first_harm = 0
 lambda_start = 800
