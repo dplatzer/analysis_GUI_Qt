@@ -9,7 +9,7 @@ conda env create -f analysis_GUI_Qt_env.yml
 ```
 then activate the environment:
 ```
-activate analysis_GUI_Qt_env
+activate analysis_GUI_Qt
 ```
 finally:
 ```
