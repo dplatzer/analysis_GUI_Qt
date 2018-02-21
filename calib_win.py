@@ -172,12 +172,12 @@ class CalibWin(QWidget):
         eparlayout = QGridLayout()
         eparlayout.setSpacing(10)
 
-        self.retpot_le = QLineEdit("0", self)
-        self.toflength_le = QLineEdit("2", self)
-        self.wvlength_le = QLineEdit("800", self)
+        self.retpot_le = QLineEdit(str(cts.cur_Vp), self)
+        self.toflength_le = QLineEdit(str(cts.cur_L), self)
+        self.wvlength_le = QLineEdit(str(cts.lambda_start), self)
         self.gas_combo = QComboBox(self)
         self.gas_combo.addItems(gases)
-        self.firstharm_le = QLineEdit("13", self)
+        self.firstharm_le = QLineEdit(str(cts.first_harm), self)
 
         self.retpot_le.returnPressed.connect(self.update_cts_fn)
         self.toflength_le.returnPressed.connect(self.update_cts_fn)
@@ -249,10 +249,6 @@ class CalibWin(QWidget):
 
     ''' In commandLayout - Initialization of the resulting energy vector section, with elow, ehigh and dE'''
     def init_envectlayout(self) -> None:
-
-        cts.elow = (float(self.firstharm_le.text()) - 1) * cts.HEV * cts.cur_nu
-        cts.ehigh = float(34 * cts.HEV * cts.cur_nu)
-        cts.dE = 0.01
 
         envect_box = QGroupBox()
         envect_box.setTitle("Energy vector parameters")

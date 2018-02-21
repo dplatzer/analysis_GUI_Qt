@@ -534,11 +534,14 @@ class RabbitWin(QWidget):
             jx = []
             for xi, xf in cts.bands_vect:
                 ji = np.argmin(abs(cts.energy_vect - xi))
-                jf = np.argmin(abs(cts.energy_vect - xf))
+                jf = np.argmin(abs(cts.energy_vect - xf)) + 1
                 jx.append([ji, jf])
 
             for ji, jf in jx[:]:
-                x_data = np.trapz(signal[:, ji:jf], cts.energy_vect[ji:jf], axis=1)
+                if jf - ji > 1: #if we integrate ie if we have more than one point
+                    x_data = np.trapz(signal[:, ji:jf], cts.energy_vect[ji:jf], axis=1)
+                else:
+                    x_data = signal[:, ji]
                 fpeak, peak, peak_phase = af.find_2w(x_data, cts.scanstep_fs)
                 self.freqnorm, ampl, ang = af.FFT(x_data, cts.scanstep_fs)
                 ampl = np.array(ampl)
@@ -788,6 +791,7 @@ class selectBandsPlotWin(ow.plot3DWidget):
         # the plot3DWidget function
         self.color_sld.valueChanged[int].connect(self.sbcolor_lr)
         self.fc.mpl_connect('button_press_event', self.onclick)
+
         self.refreshplot_fn()
 
         self.show()
@@ -826,13 +830,27 @@ class selectBandsPlotWin(ow.plot3DWidget):
         self.FTselect_rb.value = "FT"
         self.FTselect_rb.toggled.connect(self.selectmode_lr)
 
+        self.theoryselect_rb = QRadioButton("theory", self)
+        self.theoryselect_rb.value = "theory"
+        self.theoryselect_rb.toggled.connect(self.selectmode_lr)
+
         self.selectmode_bg.addButton(self.manualselect_rb)
         self.selectmode_bg.addButton(self.FTselect_rb)
+        self.selectmode_bg.addButton(self.theoryselect_rb)
 
         self.FTthreshold_le = QLineEdit("0.2", self)
         self.FTthreshold_le.setSizePolicy(0, 0)
         self.FTthreshold_le.setFixedSize(60, 20)
         self.FTthreshold_le.returnPressed.connect(self.FTselect_fn)
+
+        self.theorythreshold_le = QLineEdit("0.3", self)
+        self.theorythreshold_le.setSizePolicy(0, 0)
+        self.theorythreshold_le.setFixedSize(60, 20)
+        self.theorythreshold_le.returnPressed.connect(self.theoryselect_fn)
+
+        self.integrate_cb = QCheckBox("integrate", self)
+        self.integrate_cb.toggle()
+        self.integrate_cb.stateChanged.connect(self.integrate_lr)
 
         self.done_btn = QPushButton("Done", self)
         self.done_btn.setSizePolicy(0, 0)
@@ -851,6 +869,9 @@ class selectBandsPlotWin(ow.plot3DWidget):
         self.paramlayout.addWidget(self.manualselect_rb)
         self.paramlayout.addWidget(self.FTselect_rb)
         self.paramlayout.addWidget(self.FTthreshold_le)
+        self.paramlayout.addWidget(self.theoryselect_rb)
+        self.paramlayout.addWidget(self.theorythreshold_le)
+        self.paramlayout.addWidget(self.integrate_cb)
         self.paramlayout.addStretch(1)
         self.paramlayout.addWidget(self.cancel_btn)
         self.paramlayout.addWidget(self.done_btn)
@@ -864,6 +885,10 @@ class selectBandsPlotWin(ow.plot3DWidget):
     def keyPressEvent(self, event) -> None:
         key = event.key()
 
+    def integrate_lr(self) -> None:
+        l=0
+        self.selectmode_fn()
+
     def sbcolor_lr(self, value) -> None:
         self.refreshplot_sb(value)
         self.value = value
@@ -871,14 +896,31 @@ class selectBandsPlotWin(ow.plot3DWidget):
     def selectmode_lr(self) -> None:
         rb = self.sender()
         self.selectmode = rb.value
+        self.selectmode_fn()
+
+    def selectmode_fn(self) -> None:
         if self.selectmode == "manual":
+            self.clickcount = 0
             cts.bands_vect = np.zeros([cts.bandsnb, 2])
             self.FTthreshold_le.setEnabled(False)
+            self.theorythreshold_le.setEnabled(False)
             self.done_btn.setEnabled(False)
             self.refreshplot_sb(value=self.value)
         elif self.selectmode == "FT":
-            self.FTthreshold_le.setEnabled(True)
+            if self.integrate_cb.isChecked():
+                self.FTthreshold_le.setEnabled(True)
+            else:
+                self.FTthreshold_le.setEnabled(False)
+            self.theorythreshold_le.setEnabled(False)
             self.FTselect_fn()
+            self.done_btn.setEnabled(True)
+        elif self.selectmode == "theory":
+            self.FTthreshold_le.setEnabled(False)
+            if self.integrate_cb.isChecked():
+                self.theorythreshold_le.setEnabled(True)
+            else:
+                self.theorythreshold_le.setEnabled(False)
+            self.theoryselect_fn()
             self.done_btn.setEnabled(True)
 
     def FTselect_fn(self) -> None:
@@ -912,42 +954,89 @@ class selectBandsPlotWin(ow.plot3DWidget):
         self.peak_rainbow = np.array(self.peak_rainbow)
         self.peak_phase_rainbow = - np.array(self.peak_phase_rainbow)
 
-        for i in range(cts.bandsnb):
-            iemin = np.argmin(abs(cts.energy_vect - (self.SBi - 0.6 + 2 * i) * hnu))
-            iemax = np.argmin(abs(cts.energy_vect - (self.SBi + 0.6 + 2 * i) * hnu))
+        if self.integrate_cb.isChecked():
+            for i in range(cts.bandsnb):
+                iemin = np.argmin(abs(cts.energy_vect - (self.SBi - 0.6 + 2 * i) * hnu))
+                iemax = np.argmin(abs(cts.energy_vect - (self.SBi + 0.6 + 2 * i) * hnu))
 
-            ampl = self.peak_rainbow[iemin:iemax]
-            dampl = np.zeros(ampl.shape[0])
+                ampl = self.peak_rainbow[iemin:iemax]
+                dampl = np.zeros(ampl.shape[0])
 
-            for k in range(dampl.shape[0] - 1):  # dampl[-1] = 0
-                dampl[k] = ampl[k + 1] - ampl[k]
-                # print(ampl.max())
-            xi = []
-            for l in range(dampl.shape[0]):
-                if (ampl[l] > amp_threshold * ampl.max() and dampl[l] > 0):
-                    xi.append(l)
-            for l in range(dampl.shape[0]):
-                if (ampl[l] > amp_threshold * ampl.max() and dampl[l] < 0):
-                    xi.append(l)
-            # in this way, xi is probably messy but what import are the first and last values
+                for k in range(dampl.shape[0] - 1):  # dampl[-1] = 0
+                    dampl[k] = ampl[k + 1] - ampl[k]
+                    # print(ampl.max())
+                xi = []
+                for l in range(dampl.shape[0]):
+                    if (ampl[l] > amp_threshold * ampl.max() and dampl[l] > 0):
+                        xi.append(l)
+                for l in range(dampl.shape[0]):
+                    if (ampl[l] > amp_threshold * ampl.max() and dampl[l] < 0):
+                        xi.append(l)
+                # in this way, xi is probably messy but what import are the first and last values
 
-            cts.bands_vect[i, 0] = cts.energy_vect[xi[0] + iemin]
-            cts.bands_vect[i, 1] = cts.energy_vect[xi[-1] + iemin + 1]
+                cts.bands_vect[i, 0] = cts.energy_vect[xi[0] + iemin]
+                cts.bands_vect[i, 1] = cts.energy_vect[xi[-1] + iemin]
+        else:
+            for i in range(cts.bandsnb):
+                iemin = np.argmin(abs(cts.energy_vect - (self.SBi - 0.3 + 2 * i) * hnu))
+                iemax = np.argmin(abs(cts.energy_vect - (self.SBi + 0.3 + 2 * i) * hnu))
+
+                ampl = self.peak_rainbow[iemin:iemax]
+                xi = np.argmax(ampl)
+                cts.bands_vect[i, 0] = cts.energy_vect[xi + iemin]
+                cts.bands_vect[i, 1] = cts.energy_vect[xi + iemin]
+
+        self.refreshplot_sb(value=self.value)
+
+    def theoryselect_fn(self) -> None:
+        hnu = cts.HEV * cts.cur_nu
+        self.SBi = cts.first_harm + 1
+
+
+        if self.integrate_cb.isChecked():
+            for i in range(cts.bandsnb):
+                emin = np.argmin(
+                    abs(cts.energy_vect - (self.SBi - float(self.theorythreshold_le.text()) + 2 * i) * hnu))
+                emax = np.argmin(
+                    abs(cts.energy_vect - (self.SBi + float(self.theorythreshold_le.text()) + 2 * i) * hnu))
+
+                cts.bands_vect[i, 0] = cts.energy_vect[emin]
+                cts.bands_vect[i, 1] = cts.energy_vect[emax]
+
+        else:
+            for i in range(cts.bandsnb):
+                ecenter = np.argmin(abs(cts.energy_vect - (self.SBi + 2 * i) * hnu))
+                cts.bands_vect[i, 0] = cts.energy_vect[ecenter]
+                cts.bands_vect[i, 1] = cts.energy_vect[ecenter]
 
         self.refreshplot_sb(value=self.value)
 
     def onclick(self, event) -> None:
         if self.selectbands_cb.isChecked() and self.selectmode == "manual":
-            if self.clickcount < 2 * cts.bandsnb:
-                if self.clickcount == 2 * cts.bandsnb - 1:
-                    self.done_btn.setEnabled(True)
-                cts.bands_vect[self.clickcount // 2, self.clickcount % 2] = event.xdata
-                self.clickcount += 1
-            # when all the lines are set, we can modify a line on clicking next to it
+            if self.integrate_cb.isChecked():
+                if self.clickcount < 2 * cts.bandsnb:
+                    if self.clickcount == 2 * cts.bandsnb - 1:
+                        self.done_btn.setEnabled(True)
+                    cts.bands_vect[self.clickcount // 2, self.clickcount % 2] = event.xdata
+                    self.clickcount += 1
+                # when all the lines are set, we can modify a line on clicking next to it
+                else:
+                    k = np.argmin(abs(cts.bands_vect - event.xdata))
+                    cts.bands_vect[k // 2, k % 2] = event.xdata
+                self.refreshplot_sb(value=self.value)
             else:
-                k = np.argmin(abs(cts.bands_vect - event.xdata))
-                cts.bands_vect[k // 2, k % 2] = event.xdata
-            self.refreshplot_sb(value=self.value)
+                if self.clickcount < cts.bandsnb:
+                    if self.clickcount == cts.bandsnb - 1:
+                        self.done_btn.setEnabled(True)
+                    cts.bands_vect[self.clickcount, 0] = event.xdata
+                    cts.bands_vect[self.clickcount, 1] = event.xdata
+                    self.clickcount += 1
+                # when all the lines are set, we can modify a line on clicking next to it
+                else:
+                    k = np.argmin(abs(cts.bands_vect[:,0] - event.xdata))
+                    cts.bands_vect[k, 0] = event.xdata
+                    cts.bands_vect[k, 1] = event.xdata
+                self.refreshplot_sb(value=self.value)
 
     def refreshplot_sb(self, value=25) -> None:
         try:
@@ -1127,7 +1216,7 @@ class FTContrastWin(QDialog):
         self.jx = []
         for xi, xf in cts.bands_vect:
             ji = np.argmin(abs(cts.energy_vect - xi))
-            jf = np.argmin(abs(cts.energy_vect - xf))
+            jf = np.argmin(abs(cts.energy_vect - xf)) + 1
             self.jx.append([ji, jf])
 
         self.fpeak = np.array(cts.fpeak)
@@ -1270,8 +1359,12 @@ class FTContrastWin(QDialog):
            self.ang = []
            cts.FT_npad = int(self.FTpadding_le.text())
            self.FTdt_lr() # to update cts.scanstep_fs
-           for ii, jj in self.jx[:]:
-               x_data = np.trapz(cts.rabbit_mat[:, ii:jj], cts.energy_vect[ii:jj], axis=1)
+           for ji, jf in self.jx[:]:
+               if jf - ji > 1:  # if we integrate ie if we have more than one point
+                   x_data = np.trapz(cts.rabbit_mat[:, ji:jf], cts.energy_vect[ji:jf], axis=1)
+               else:
+                   x_data = cts.rabbit_mat[:, ji]
+
                self.freqnorm, ampl, ang = af.FFT(x_data, cts.scanstep_fs)
                self.ampl.append(ampl)
                self.ang.append(ang)
