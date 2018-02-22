@@ -12,7 +12,7 @@ IP_NE = 21.56454 #Neon
 IP_AR = 15.75961  #Argon
 IP_KR = 13.99961 #Krypton
 IP_XE = 12.12984 #Xenon
-IP_N2_X = 15.58 #Nitrogen X
+IP_N2_X = 15.58 #N2 X
 
 GASLIST = ['He', 'Ne', 'Ar', 'Kr', 'Xe', 'N2_X']
 IPLIST = [IP_HE, IP_NE, IP_AR, IP_KR, IP_XE, IP_N2_X]
@@ -22,6 +22,8 @@ RFANO_AR = 26.6 # Argon
 
 ###### GLOBAL VARIABLES ###########
 ''' Global means here the variables shared by the different objects in the program'''
+minus_sign = False
+
 #energy calibration
 afit = 0.0
 t0fit = 0.0
@@ -85,7 +87,7 @@ rabsmoothed = False
 xuvsubstracted = False
 
 ''' The list of the variables displayed in the "variable explorer" on the left of the main window '''
-varlist = [['afit',afit], ['t0fit',t0fit], ['cfit',cfit], ['Ip',cur_Ip], ['nu',cur_nu], ['Vp',cur_Vp], ['L',cur_L],
+varlist = [['*(-1)',minus_sign], ['afit',afit], ['t0fit',t0fit], ['cfit',cfit], ['Ip',cur_Ip], ['nu',cur_nu], ['Vp',cur_Vp], ['L',cur_L],
 		   ['1st harm', first_harm], ['elow', elow], ['ehigh', ehigh], ['dE', dE], ['steps_nm', scanstep_nm],
 		   ['steps_fs', scanstep_fs], ['stepsnb', stepsnb], ['delay', delay_vect], ['energy', energy_vect],
 		   ['XUV', xuvonly_vect], ['rabbit', rabbit_mat], ['rabbitXUVsub', rabbitxuvsub_mat], ['bandsnb', bandsnb],
@@ -96,7 +98,7 @@ varlist = [['afit',afit], ['t0fit',t0fit], ['cfit',cfit], ['Ip',cur_Ip], ['nu',c
 
 def update_varlist():
 	global varlist
-	varlist = [['afit', afit], ['t0fit', t0fit], ['cfit', cfit], ['Ip', cur_Ip], ['nu', cur_nu], ['Vp', cur_Vp],
+	varlist = [['*(-1)',minus_sign], ['afit', afit], ['t0fit', t0fit], ['cfit', cfit], ['Ip', cur_Ip], ['nu', cur_nu], ['Vp', cur_Vp],
 			   ['L', cur_L], ['1st harm', first_harm], ['elow', elow], ['ehigh', ehigh], ['dE', dE],
 			   ['steps_nm', scanstep_nm],['steps_fs', scanstep_fs], ['stepsnb', stepsnb], ['delay', delay_vect],
 			   ['energy', energy_vect], ['XUV', xuvonly_vect], ['rabbit', rabbit_mat], ['rabbitXUVsub', rabbitxuvsub_mat],

@@ -325,6 +325,10 @@ class CalibWin(QWidget):
         self.xmax_rb.toggled.connect(self.threshtype_lr)
         self.xmax_rb.setEnabled(False)
 
+        self.minus_sign_cb = QCheckBox("*(-1)", self)
+        self.minus_sign_cb.setEnabled(False)
+        self.minus_sign_cb.stateChanged.connect(self.minus_sign_lr)
+
         self.threshtype_bgroup.addButton(self.Y_rb)
         self.threshtype_bgroup.addButton(self.xmin_rb)
         self.threshtype_bgroup.addButton(self.xmax_rb)
@@ -337,6 +341,7 @@ class CalibWin(QWidget):
         tgparalayout.addWidget(self.showexppeaks_cb, 0, 2)
         tgparalayout.addWidget(self.clear_btn, 0, 3)
         tgparalayout.addLayout(rblayout, 1, 0, 1, 3)
+        tgparalayout.addWidget(self.minus_sign_cb, 1, 3)
 
         self.graphlayout.addWidget(self.tof_fc)
         self.graphlayout.addWidget(tof_nav)
@@ -464,6 +469,8 @@ class CalibWin(QWidget):
 
     ''' "load data" button listener'''
     def loadfile_lr(self) -> None:
+        if self.dataloaded:
+            self.clear_lr()
 
         TOFfile = QFileDialog.getOpenFileName(self, 'Load data')
         fname = TOFfile[0]
@@ -473,6 +480,9 @@ class CalibWin(QWidget):
                     data = [[float(digit) for digit in line.split()] for line in file]
                     data_array = np.asarray(data)  # converting 1D list into 2D array
                     self.counts = data_array
+
+                    if cts.minus_sign:
+                        self.counts[:, 1] = (-1)*self.counts[:, 1]
 
                     self.thxmin = 0
                     self.thy = 0
@@ -493,6 +503,7 @@ class CalibWin(QWidget):
                     self.xmin_rb.setEnabled(True)
                     self.xmax_rb.setEnabled(True)
                     self.clear_btn.setEnabled(True)
+                    self.minus_sign_cb.setEnabled(True)
                     self.importcalib_btn.setEnabled(True)
                     self.withsb_cb.setEnabled(True)
 
@@ -538,6 +549,29 @@ class CalibWin(QWidget):
     def setth_lr(self) -> None:
         if self.setth_cb.isChecked():
             self.addpeak_cb.setCheckState(Qt.Unchecked)
+
+    def minus_sign_lr(self):
+        if self.minus_sign_cb.isChecked():
+            cts.minus_sign = True
+        else:
+            cts.minus_sign = False
+
+        self.window().updateglobvar_fn()
+        self.counts[:, 1] = (-1) * self.counts[:, 1]
+
+        self.bgndremoved = True
+        self.peaksfound = False
+        self.threshyBool = False
+        self.threshxminBool = False
+        self.threshxmaxBool = False
+        self.thxmin = 0
+        self.thy = 0
+        self.thxmax = self.counts.shape[0] * 1e-9
+
+        self.rmpeaks_btn.setEnabled(False)
+        self.tof2en_btn.setEnabled(False)
+        self.rmbgnd_btn.setEnabled(False)
+        self.refreshplot_fn()
 
     ''' "add peak" checkbox listener '''
     def addpeak_lr(self) -> None:
@@ -718,12 +752,15 @@ class CalibWin(QWidget):
         self.Y_rb.setEnabled(False)
         self.xmin_rb.setEnabled(False)
         self.xmax_rb.setEnabled(False)
+        self.minus_sign_cb.setEnabled(False)
 
         for w in self.children():
             if isinstance(w, QPushButton) or isinstance(w, QCheckBox):
                 w.setEnabled(False)
         self.load_btn.setEnabled(True)
         self.importcalib_btn.setEnabled(False)
+
+        self.minus_sign_cb.setEnabled(False)
 
         self.tof_fc.draw()
         self.fit_fc.draw()
