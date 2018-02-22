@@ -30,15 +30,18 @@ cfit = 0.0
 #experimental parameters
 cur_Ip = 0.0
 cur_nu = 0.0
-cur_Vp = 0.0 # retarding potential
-cur_L = 0 # length of the TOF
 cur_SBi = 0
 first_harm = 0
+lambda_start = 800
+cur_nu = C / (lambda_start * 1e-9)
+cur_Vp = 0 # retarding potential
+cur_L = 2 # length of the TOF
+first_harm = 13
 
 #energy conversion
-elow = 0.0
-ehigh = 0.0
-dE = 0.0
+elow = (first_harm - 1) * HEV * cur_nu
+ehigh = float(52 * HEV * cur_nu)
+dE = 0.01
 
 #scan steps
 scanstep_nm = 25

@@ -1,0 +1,9 @@
+name: analysis_GUI_Qt
+dependencies:
+    - python=3.6
+    - pyqt=5.6
+    - numpy
+    - scipy
+    - matplotlib
+    - pip :
+        - ./
