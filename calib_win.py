@@ -178,12 +178,14 @@ class CalibWin(QWidget):
         self.gas_combo = QComboBox(self)
         self.gas_combo.addItems(gases)
         self.firstharm_le = QLineEdit(str(cts.first_harm), self)
+        self.TOF_resolution_le = QLineEdit(str(cts.TOF_resolution), self)
 
         self.retpot_le.returnPressed.connect(self.update_cts_fn)
         self.toflength_le.returnPressed.connect(self.update_cts_fn)
         self.wvlength_le.returnPressed.connect(self.update_cts_fn)
         self.firstharm_le.returnPressed.connect(self.update_cts_fn)
         self.gas_combo.currentIndexChanged.connect(self.gas_combo_lr)
+        self.TOF_resolution_le.returnPressed.connect(self.update_cts_fn)
 
         eparlayout.addWidget(QLabel("Ret. pot. (V)"), 0, 0)
         eparlayout.addWidget(self.retpot_le, 1, 0)
@@ -195,6 +197,8 @@ class CalibWin(QWidget):
         eparlayout.addWidget(self.gas_combo, 1, 3)
         eparlayout.addWidget(QLabel("1st harm."), 0, 4)
         eparlayout.addWidget(self.firstharm_le, 1, 4)
+        eparlayout.addWidget(QLabel("TOF resol. (s)"), 2, 0)
+        eparlayout.addWidget(self.TOF_resolution_le, 3, 0)
 
         epar_box.setLayout(eparlayout)
 
@@ -427,6 +431,7 @@ class CalibWin(QWidget):
             cts.cur_Vp = float(self.retpot_le.text())
             cts.cur_L = float(self.toflength_le.text())
             cts.first_harm = int(self.firstharm_le.text())
+            cts.TOF_resolution = float(self.TOF_resolution_le.text())
             self.window().updateglobvar_fn()
             self.aguess = (0.5 * cts.ME * cts.cur_L ** 2 / cts.QE) / (cts.HEV * cts.cur_nu)
             self.t0guess = 5.8e-8
@@ -559,7 +564,7 @@ class CalibWin(QWidget):
         self.window().updateglobvar_fn()
         self.counts[:, 1] = (-1) * self.counts[:, 1]
 
-        self.bgndremoved = True
+        self.bgndremoved = False
         self.peaksfound = False
         self.threshyBool = False
         self.threshxminBool = False
@@ -570,7 +575,11 @@ class CalibWin(QWidget):
 
         self.rmpeaks_btn.setEnabled(False)
         self.tof2en_btn.setEnabled(False)
-        self.rmbgnd_btn.setEnabled(False)
+        if self.dataloaded:
+            self.rmbgnd_btn.setEnabled(True)
+        else:
+            self.rmbgnd_btn.setEnabled(False)
+
         self.refreshplot_fn()
 
     ''' "add peak" checkbox listener '''
@@ -589,7 +598,7 @@ class CalibWin(QWidget):
             ip, dp, convolution = af.find_local_maxima(self.counts[:, 1], self.thy, self.thxmin, self.thxmax,
                                                        int(self.sm1_le.text()), int(self.sm2_le.text()),
                                                        int(self.mindt_le.text()))
-            self.maximaIndices = (ip*1e-9).tolist()
+            self.maximaIndices = (ip*cts.TOF_resolution).tolist() #1e-9 on SE1
             self.maximaIntensity = dp.tolist()
             self.convolvedsignal = convolution.tolist()
             self.peaksfound = True

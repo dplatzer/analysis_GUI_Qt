@@ -23,6 +23,7 @@ RFANO_AR = 26.6 # Argon
 ###### GLOBAL VARIABLES ###########
 ''' Global means here the variables shared by the different objects in the program'''
 minus_sign = False
+TOF_resolution = 1e-9 #1e-9 on SE1, 5e-11 on SE10
 
 #energy calibration
 afit = 0.0
@@ -87,7 +88,7 @@ rabsmoothed = False
 xuvsubstracted = False
 
 ''' The list of the variables displayed in the "variable explorer" on the left of the main window '''
-varlist = [['*(-1)',minus_sign], ['afit',afit], ['t0fit',t0fit], ['cfit',cfit], ['Ip',cur_Ip], ['nu',cur_nu], ['Vp',cur_Vp], ['L',cur_L],
+varlist = [['*(-1)', minus_sign], ['TOF resol.', TOF_resolution], ['afit',afit], ['t0fit',t0fit], ['cfit',cfit], ['Ip',cur_Ip], ['nu',cur_nu], ['Vp',cur_Vp], ['L',cur_L],
 		   ['1st harm', first_harm], ['elow', elow], ['ehigh', ehigh], ['dE', dE], ['steps_nm', scanstep_nm],
 		   ['steps_fs', scanstep_fs], ['stepsnb', stepsnb], ['delay', delay_vect], ['energy', energy_vect],
 		   ['XUV', xuvonly_vect], ['rabbit', rabbit_mat], ['rabbitXUVsub', rabbitxuvsub_mat], ['bandsnb', bandsnb],
@@ -98,7 +99,7 @@ varlist = [['*(-1)',minus_sign], ['afit',afit], ['t0fit',t0fit], ['cfit',cfit], 
 
 def update_varlist():
 	global varlist
-	varlist = [['*(-1)',minus_sign], ['afit', afit], ['t0fit', t0fit], ['cfit', cfit], ['Ip', cur_Ip], ['nu', cur_nu], ['Vp', cur_Vp],
+	varlist = [['*(-1)',minus_sign], ['TOF resol.', TOF_resolution], ['afit', afit], ['t0fit', t0fit], ['cfit', cfit], ['Ip', cur_Ip], ['nu', cur_nu], ['Vp', cur_Vp],
 			   ['L', cur_L], ['1st harm', first_harm], ['elow', elow], ['ehigh', ehigh], ['dE', dE],
 			   ['steps_nm', scanstep_nm],['steps_fs', scanstep_fs], ['stepsnb', stepsnb], ['delay', delay_vect],
 			   ['energy', energy_vect], ['XUV', xuvonly_vect], ['rabbit', rabbit_mat], ['rabbitXUVsub', rabbitxuvsub_mat],
