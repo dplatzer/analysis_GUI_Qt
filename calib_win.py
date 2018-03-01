@@ -1,4 +1,4 @@
-import sys
+import sys, traceback
 from PyQt5.QtCore import QRect, Qt
 from PyQt5.QtWidgets import QWidget, QPushButton, QApplication, QGridLayout, QHBoxLayout, QVBoxLayout, QGroupBox, QLabel
 from PyQt5.QtWidgets import QLineEdit, QCheckBox, QComboBox, QRadioButton, QButtonGroup, QFileDialog, QDialog, QTableWidget
@@ -49,7 +49,7 @@ class CalibWin(QWidget):
         self.commandlayout = QVBoxLayout()
         self.commandlayout.setSpacing(10)
 
-        self.init_var()
+
 
         # initialization of all the widgets/layouts
         self.init_btnlayout()
@@ -68,7 +68,11 @@ class CalibWin(QWidget):
         self.mainlayout.addLayout(self.graphlayout)
         self.mainlayout.addLayout(self.commandlayout)
         self.setLayout(self.mainlayout)
+
+        self.init_var()
+
         self.show()
+
 
     ''' Initialization of instance attributes'''
     def init_var(self) -> None:
@@ -82,6 +86,10 @@ class CalibWin(QWidget):
         self.threshxmaxBool = False
         self.showexppeaksBool = False
         self.calibBool = False
+
+        self.gas_combo.setCurrentIndex(2)  # Argon
+        self.decimal_combo.setCurrentIndex(0)  # dot as decimal separator
+
 
     ''' In commandLayout - Initialization of the top right part of the layout, with 6 buttons (see just below)'''
     def init_btnlayout(self) -> None:
@@ -165,6 +173,7 @@ class CalibWin(QWidget):
     def init_eparlayout(self) -> None:
 
         gases = cts.GASLIST
+        decimal_separ = cts.decimal_separ_list
 
         epar_box = QGroupBox(self)
         epar_box.setTitle("Experimental parameters")
@@ -179,6 +188,8 @@ class CalibWin(QWidget):
         self.gas_combo.addItems(gases)
         self.firstharm_le = QLineEdit(str(cts.first_harm), self)
         self.TOF_resolution_le = QLineEdit(str(cts.TOF_resolution), self)
+        self.decimal_combo = QComboBox(self)
+        self.decimal_combo.addItems(decimal_separ)
 
         self.retpot_le.returnPressed.connect(self.update_cts_fn)
         self.toflength_le.returnPressed.connect(self.update_cts_fn)
@@ -186,6 +197,7 @@ class CalibWin(QWidget):
         self.firstharm_le.returnPressed.connect(self.update_cts_fn)
         self.gas_combo.currentIndexChanged.connect(self.gas_combo_lr)
         self.TOF_resolution_le.returnPressed.connect(self.update_cts_fn)
+        self.decimal_combo.currentIndexChanged.connect(self.decimal_combo_lr)
 
         eparlayout.addWidget(QLabel("Ret. pot. (V)"), 0, 0)
         eparlayout.addWidget(self.retpot_le, 1, 0)
@@ -199,6 +211,8 @@ class CalibWin(QWidget):
         eparlayout.addWidget(self.firstharm_le, 1, 4)
         eparlayout.addWidget(QLabel("TOF resol. (s)"), 2, 0)
         eparlayout.addWidget(self.TOF_resolution_le, 3, 0)
+        eparlayout.addWidget(QLabel("decimal separ."), 2, 1)
+        eparlayout.addWidget(self.decimal_combo, 3, 1)
 
         epar_box.setLayout(eparlayout)
 
@@ -248,8 +262,6 @@ class CalibWin(QWidget):
                 widget.setFixedSize(55, 15)
 
         self.commandlayout.addWidget(fitpar_box)
-        self.gas_combo.setCurrentIndex(2)  # Argon
-        self.update_cts_fn()
 
     ''' In commandLayout - Initialization of the resulting energy vector section, with elow, ehigh and dE'''
     def init_envectlayout(self) -> None:
@@ -459,6 +471,10 @@ class CalibWin(QWidget):
         cts.cur_Ip = cts.IPLIST[i]
         self.update_cts_fn()
 
+    def decimal_combo_lr(self, i):
+        cts.decimal_separ = cts.decimal_separ_list[i]
+        self.update_cts_fn()
+
     ''' Listener of the threshold radiobuttons: Y, Xmin or Xmax'''
     def threshtype_lr(self) -> None:
 
@@ -482,7 +498,12 @@ class CalibWin(QWidget):
         if(fname):
             with open(fname, 'r') as file:
                 try:
-                    data = [[float(digit) for digit in line.split()] for line in file]
+                    if cts.decimal_separ == 'dot':
+                        data = [[float(digit) for digit in line.split()] for line in file]
+                    elif cts.decimal_separ == 'comma':
+                        data = [[float(digit.replace(',', '.')) for digit in line.split()] for line in file]
+                    else:
+                        print("Error in the code")
                     data_array = np.asarray(data)  # converting 1D list into 2D array
                     self.counts = data_array
 
@@ -520,8 +541,12 @@ class CalibWin(QWidget):
 
                 except ValueError:
                     print('Incorrect data file')
+                    self.window().statusBar().showMessage('Incorrect data file')
                 except IndexError:
                     print('Incorrect data file')
+                    self.window().statusBar().showMessage('Incorrect data file')
+                except Exception:
+                    print(traceback.format_exception(*sys.exc_info()))
 
     ''' "remove bgnd" button listener'''
     def rmbgnd_lr(self) -> None:
