@@ -335,27 +335,48 @@ class RabbitWin(QWidget):
                 cts.stepsnb = len(flist)
                 cts.delay_vect = np.linspace(0, cts.scanstep_fs * cts.stepsnb, cts.stepsnb, endpoint=False)
 
-                try:
-                    data = np.loadtxt(data_filename, unpack=True)
-                except ValueError:  # if we don't choose a correct file but in the right directory
-                    data = np.loadtxt(flist[0], unpack=True)
-
-                self.tof = data[0, :]
-                self.toflength = data.shape[1]
-                self.tof = self.tof[::-1]
-                self.data_tof = []
-                cts.rabbit_mat = []
+                with open(data_filename, 'r') as file:
+                    try:
+                        if cts.decimal_separ == 'dot':
+                            data = [[float(digit) for digit in line.split()] for line in file]
+                        elif cts.decimal_separ == 'comma':
+                            data = [[float(digit.replace(',', '.')) for digit in line.split()] for line in file]
+                        data = np.asarray(data)
+                        data = np.transpose(data)
+                        self.tof = data[0, :]
+                        self.toflength = data.shape[1]
+                        self.tof = self.tof[::-1]
+                        self.data_tof = []
+                    except Exception:
+                        print(traceback.format_exception(*sys.exc_info()))
 
                 i = 0
                 for fn in flist:
                     self.window().statusBar().showMessage("Processing " + str(i))
-                    data = np.loadtxt(fn, unpack=True)
-                    counts = data[1, :] - data[1, 300:600].mean()
-                    cts.energy_vect, counts2 = af.jacobian_transform(self.tof, counts)
-                    self.elength = cts.energy_vect.shape[0]
-                    cts.rabbit_mat.append(counts2)
-                    self.data_tof.append(counts)
-                    i += 1
+                    """data = np.loadtxt(fn, unpack=True)"""
+                    with open(fn, 'r') as file:
+                        try:
+                            if cts.decimal_separ == 'dot':
+                                data = [[float(digit) for digit in line.split()] for line in file]
+                            elif cts.decimal_separ == 'comma':
+                                data = [[float(digit.replace(',', '.')) for digit in line.split()] for line in file]
+                            data = np.asarray(data)
+                            data = np.transpose(data)
+
+                            counts = data[1, :] - data[1, 300:600].mean()
+                            cts.energy_vect, counts2 = af.jacobian_transform(self.tof, counts)
+
+                            self.elength = cts.energy_vect.shape[0]
+
+                            if i==0:
+                                cts.rabbit_mat = np.zeros([cts.stepsnb, cts.energy_vect.shape[0]])
+                                print(cts.rabbit_mat.shape)
+                            cts.rabbit_mat[i,:] = counts2
+                            self.data_tof.append(counts)
+                            i += 1
+                        except Exception:
+                            print(traceback.format_exception(*sys.exc_info()))
+
 
                 cts.rabbit_mat = np.array(cts.rabbit_mat)
                 cts.rabbit_mat = cts.rabbit_mat[::-1, :]

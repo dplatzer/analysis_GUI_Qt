@@ -218,8 +218,12 @@ class CalibWin(QWidget):
 
         for widget in epar_box.children():
             if isinstance(widget, QLineEdit) or isinstance(widget, QComboBox):
+                if widget == self.decimal_combo:
+                    widget.setFixedSize(60, 20)
+                else:
+                    widget.setFixedSize(50, 20)
                 widget.setSizePolicy(0, 0)
-                widget.setFixedSize(50, 20)
+
 
         self.commandlayout.addWidget(epar_box)
 
