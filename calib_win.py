@@ -516,7 +516,7 @@ class CalibWin(QWidget):
 
                     self.thxmin = 0
                     self.thy = 0
-                    self.thxmax = self.counts.shape[0] * 1e-9
+                    self.thxmax = self.counts.shape[0] * cts.TOF_resolution
 
                     self.tof_ax.plot(self.counts[:, 0], self.counts[:, 1])
 
@@ -623,8 +623,12 @@ class CalibWin(QWidget):
     ''' "find peaks" button listener '''
     def findpeaks_lr(self) -> None:
 
+        nbpts = 2**12
+        if self.counts.shape[0] < 2**12:
+            nbpts = 512
+
         try:
-            ip, dp, convolution = af.find_local_maxima(self.counts[:, 1], self.thy, self.thxmin, self.thxmax,
+            ip, dp, convolution = af.find_local_maxima(self.counts[:, 1], self.thy, self.thxmin, self.thxmax, nbpts,
                                                        int(self.sm1_le.text()), int(self.sm2_le.text()),
                                                        int(self.mindt_le.text()))
             self.maximaIndices = (ip*cts.TOF_resolution).tolist() #1e-9 on SE1
