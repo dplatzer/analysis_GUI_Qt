@@ -11,7 +11,8 @@ import traceback
 import numpy as np
 
 # homemade modules
-import calib_win, Rabbit_win
+from Calibration import calib_win
+from Rabbit import Rabbit_win
 import glob_var as cts
 
 '''The main object.'''
@@ -67,11 +68,11 @@ class mainWin(QMainWindow):
         self.layout.setContentsMargins(0, 0, 0, 0)
 
         self.main_panel = QTabWidget()
-        self.tab1 = calib_win.CalibWin(self)
-        self.tab2 = Rabbit_win.RabbitWin(self)
+        self.calib_tab = calib_win.CalibWin(self)
+        self.rabbit_tab = Rabbit_win.RabbitWin(self)
 
-        self.main_panel.addTab(self.tab1, "Energy calibration")
-        self.main_panel.addTab(self.tab2, "RABBIT")
+        self.main_panel.addTab(self.calib_tab, "Energy calibration")
+        self.main_panel.addTab(self.rabbit_tab, "RABBIT")
 
         self.main_panel.currentChanged.connect(self.onTabChange)
 
@@ -146,12 +147,12 @@ class mainWin(QMainWindow):
     ''' Updating elow, ehigh and dE when going from one tab to the other'''
     def onTabChange(self) -> None:
 
-        self.tab1.elow_le.setText("{:.2f}".format(cts.elow))
-        self.tab1.ehigh_le.setText("{:.2f}".format(cts.ehigh))
-        self.tab1.dE_le.setText("{:.2f}".format(cts.dE))
-        self.tab2.elow_le.setText("{:.2f}".format(cts.elow))
-        self.tab2.ehigh_le.setText("{:.2f}".format(cts.ehigh))
-        self.tab2.dE_le.setText("{:.2f}".format(cts.dE))
+        self.calib_tab.elow_le.setText("{:.2f}".format(cts.elow))
+        self.calib_tab.ehigh_le.setText("{:.2f}".format(cts.ehigh))
+        self.calib_tab.dE_le.setText("{:.2f}".format(cts.dE))
+        self.rabbit_tab.elow_le.setText("{:.2f}".format(cts.elow))
+        self.rabbit_tab.ehigh_le.setText("{:.2f}".format(cts.ehigh))
+        self.rabbit_tab.dE_le.setText("{:.2f}".format(cts.dE))
 
 ''' The object that popups when double-clicking on a "environment" variable'''
 class varDialog(QDialog):

@@ -59,7 +59,7 @@ energy_vect = np.zeros([1,1])
 rabbit_mat = np.zeros([1,1])
 rabbitxuvsub_mat = np.zeros([1,1])
 xuvonly_vect = np.zeros([1,1])
-bandsnb = 0
+bandsnb = 5
 bands_vect = np.zeros([1,1])
 
 # after FT
