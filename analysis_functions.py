@@ -24,7 +24,7 @@ from scipy import interpolate
 import glob_var as cts
 
 
-def find_local_maxima(d, thry, thrxmin, thrxmax, smooth1=5, smooth2=20, mindt=1):
+def find_local_maxima(d, thry, thrxmin, thrxmax, nbpts=2**12, smooth1=5, smooth2=20, mindt=1):
 	"""Find local maxima of a series. Each peak is found by adaptive
     thresholding.
     Return the indices of the local maxima and the value at that index.
@@ -40,6 +40,8 @@ def find_local_maxima(d, thry, thrxmin, thrxmax, smooth1=5, smooth2=20, mindt=1)
     works well, the default value is ok. If the peaks are not well behaved and
     have a bit of digitalization noise, set mindt to something close to the
     width of a peak and it should solve the problem.
+     * nbpts is the number of points we want. If it's larger than the number of
+    data points, the convolution won't have the same number of points as the data.
 
 
        Example:
@@ -50,9 +52,9 @@ def find_local_maxima(d, thry, thrxmin, thrxmax, smooth1=5, smooth2=20, mindt=1)
     value bigger than 1. It would remove false positives. Think about it"""
 # Threshold the series: we threshold a smoothed series to find the peaks
 # approximately by adaptive thresholding
-	ds=convolve(d,gaussian(2**12,smooth1)/gaussian(2**12,smooth1).sum(),mode='same')
+	ds=convolve(d,gaussian(nbpts,smooth1)/gaussian(nbpts,smooth1).sum(),mode='same')
 #	ds=d
-	thresh=convolve(d,gaussian(2**12,smooth2)/gaussian(2**12,smooth2).sum(),mode='same')
+	thresh=convolve(d,gaussian(nbpts,smooth2)/gaussian(nbpts,smooth2).sum(),mode='same')
 
 	dt = array(where(ds[0:len(thresh)]> thresh))
 
