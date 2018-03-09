@@ -1,7 +1,8 @@
 # analysis_GUI_Qt
 
+2018/03/09
 
-2018/02/21
+You just need Anaconda 3 to run this code.
 
 To install it, create a virtual environment from the .yml file:
 ```
