@@ -22,7 +22,7 @@ class Rabbit_functions_mixin:
         if (data_filename):
             fdir, fname = os.path.split(data_filename)
             fdir = fdir + '/'
-            flist = glob(fdir + '*delay_0*')
+            flist = glob(fdir + '*[0-9][0-9][0-9][0-9].txt')
 
             if (len(flist) != 0):
                 cts.stepsnb = len(flist)

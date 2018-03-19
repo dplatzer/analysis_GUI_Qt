@@ -98,7 +98,6 @@ class CalibWin(QWidget, _calf.calib_functions_mixin, _ie.Imp_Exp_Mixin):
         self.counts = []
 
         self.gas_combo.setCurrentIndex(2)  # Argon
-        self.decimal_combo.setCurrentIndex(0)  # dot as decimal separator
 
     def init_btnlayout(self):
         ''' In commandLayout - Initialization of the top right part of the layout, with 6 buttons (see just below)'''
@@ -182,7 +181,6 @@ class CalibWin(QWidget, _calf.calib_functions_mixin, _ie.Imp_Exp_Mixin):
             wavelength, gas and first harmonic expected to see.'''
 
         gases = cts.GASLIST
-        decimal_separ = cts.decimal_separ_list
 
         epar_box = QGroupBox(self)
         epar_box.setTitle("Experimental parameters")
@@ -196,17 +194,12 @@ class CalibWin(QWidget, _calf.calib_functions_mixin, _ie.Imp_Exp_Mixin):
         self.gas_combo = QComboBox(self)
         self.gas_combo.addItems(gases)
         self.firstharm_le = QLineEdit(str(cts.first_harm), self)
-        self.TOF_resolution_le = QLineEdit(str(cts.TOF_resolution), self)
-        self.decimal_combo = QComboBox(self)
-        self.decimal_combo.addItems(decimal_separ)
 
         self.retpot_le.returnPressed.connect(self.update_cts_fn)
         self.toflength_le.returnPressed.connect(self.update_cts_fn)
         self.wvlength_le.returnPressed.connect(self.update_cts_fn)
         self.firstharm_le.returnPressed.connect(self.update_cts_fn)
         self.gas_combo.currentIndexChanged.connect(self.gas_combo_lr)
-        self.TOF_resolution_le.returnPressed.connect(self.update_cts_fn)
-        self.decimal_combo.currentIndexChanged.connect(self.decimal_combo_lr)
 
         eparlayout.addWidget(QLabel("Ret. pot. (V)"), 0, 0)
         eparlayout.addWidget(self.retpot_le, 1, 0)
@@ -218,19 +211,12 @@ class CalibWin(QWidget, _calf.calib_functions_mixin, _ie.Imp_Exp_Mixin):
         eparlayout.addWidget(self.gas_combo, 1, 3)
         eparlayout.addWidget(QLabel("1st harm."), 0, 4)
         eparlayout.addWidget(self.firstharm_le, 1, 4)
-        eparlayout.addWidget(QLabel("TOF resol. (s)"), 2, 0)
-        eparlayout.addWidget(self.TOF_resolution_le, 3, 0)
-        eparlayout.addWidget(QLabel("decimal separ."), 2, 1)
-        eparlayout.addWidget(self.decimal_combo, 3, 1)
 
         epar_box.setLayout(eparlayout)
 
         for widget in epar_box.children():
             if isinstance(widget, QLineEdit) or isinstance(widget, QComboBox):
-                if widget == self.decimal_combo:
-                    widget.setFixedSize(60, 20)
-                else:
-                    widget.setFixedSize(50, 20)
+                widget.setFixedSize(50, 20)
                 widget.setSizePolicy(0, 0)
 
 
@@ -430,11 +416,6 @@ class CalibWin(QWidget, _calf.calib_functions_mixin, _ie.Imp_Exp_Mixin):
     def gas_combo_lr(self, i):
         ''' Gas QCombobox listener'''
         cts.cur_Ip = cts.IPLIST[i]
-        self.update_cts_fn()
-
-    def decimal_combo_lr(self, i):
-        ''' decimal separator combobox listener (dot or comma)'''
-        cts.decimal_separ = cts.decimal_separ_list[i]
         self.update_cts_fn()
 
     def threshtype_lr(self):
@@ -651,8 +632,10 @@ class rmPeaksDialog(QDialog):
         self.currentindex = clickedIndex.row()-1
 
     ''' "Remove peaks" button listener '''
-    def rmpeak_lr(self) -> None:
+    def rmpeak_lr(self):
+        print('ok1')
         del self.par.maximaIndices[self.currentindex]
+        print('ok2')
         del self.par.maximaIntensity[self.currentindex]
         self.par.refreshplot_fn()
         self.refreshTable_fn()

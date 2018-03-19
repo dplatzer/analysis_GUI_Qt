@@ -14,23 +14,30 @@ class Imp_Exp_Mixin:
 
     def import_tof(self, filename):
         with open(filename, 'r') as file:
+            data = []
             try:
+                data = [[float(digit) for digit in line.split()] for line in file]
+                '''
                 if cts.decimal_separ == 'dot':
                     data = [[float(digit) for digit in line.split()] for line in file]
                 elif cts.decimal_separ == 'comma':
                     data = [[float(digit.replace(',', '.')) for digit in line.split()] for line in file]
                 else:
-                    print("Error in the code")
-                data_array = np.asarray(data)  # converting 1D list into 2D array
+                    print("Error in the code")'''
 
-            except ValueError:
-                print('Incorrect data file')
-                self.window().statusBar().showMessage('Incorrect data file')
+            except ValueError: #if the decimal separator is a comma
+                data = [[float(digit.replace(',', '.')) for digit in line.split()] for line in file]
+
             except IndexError:
                 print('Incorrect data file')
                 self.window().statusBar().showMessage('Incorrect data file')
+
             except Exception:
                 print(traceback.format_exception(*sys.exc_info()))
+
+            finally:
+                data_array = np.asarray(data)  # converting 1D list into 2D array
+
         return data_array
 
 
