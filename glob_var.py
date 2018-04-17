@@ -16,6 +16,7 @@ IP_N2_X = 15.58 #N2 X
 
 GASLIST = ['He', 'Ne', 'Ar', 'Kr', 'Xe', 'N2_X']
 IPLIST = [IP_HE, IP_NE, IP_AR, IP_KR, IP_XE, IP_N2_X]
+FIRST_HARMLIST = [17, 15, 13, 13, 13, 13] # to update
 
 RFANO_HE = 60.15 # Helium
 RFANO_AR = 26.6 # Argon
@@ -39,7 +40,6 @@ lambda_start = 800
 cur_nu = C / (lambda_start * 1e-9)
 cur_Vp = 0 # retarding potential
 cur_L = 2 # length of the TOF
-first_harm = 13
 
 #energy conversion
 elow = (first_harm - 1) * HEV * cur_nu

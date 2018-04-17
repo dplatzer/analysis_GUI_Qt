@@ -8,7 +8,7 @@ import numpy as np
 
 import glob_var as cts
 import analysis_functions as af
-from Rabbit import Rainbow_win as Rw
+#from Rabbit import Rainbow_win as Rw
 
 
 class Rabbit_functions_mixin:
@@ -46,7 +46,7 @@ class Rabbit_functions_mixin:
 
                     if i == 0:
                         cts.rabbit_mat = np.zeros([cts.stepsnb, cts.energy_vect.shape[0]])
-                        print(cts.rabbit_mat.shape)
+                        #print(cts.rabbit_mat.shape)
                     cts.rabbit_mat[i, :] = counts2
                     self.data_tof.append(counts)
                     i += 1

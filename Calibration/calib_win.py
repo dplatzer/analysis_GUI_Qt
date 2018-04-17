@@ -1,4 +1,4 @@
-import sys
+import sys, traceback
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QPushButton, QApplication, QGridLayout, QHBoxLayout, QVBoxLayout, QGroupBox, QLabel
 from PyQt5.QtWidgets import QLineEdit, QCheckBox, QComboBox, QRadioButton, QButtonGroup, QFileDialog, QDialog, QTableWidget
@@ -416,6 +416,10 @@ class CalibWin(QWidget, _calf.calib_functions_mixin, _ie.Imp_Exp_Mixin):
     def gas_combo_lr(self, i):
         ''' Gas QCombobox listener'''
         cts.cur_Ip = cts.IPLIST[i]
+        cts.first_harm = cts.FIRST_HARMLIST[i]
+        self.firstharm_le.setText(str(cts.first_harm))
+        cts.elow = (cts.first_harm - 1) * cts.HEV * cts.cur_nu
+        self.elow_le.setText("{:.2f}".format(cts.elow))
         self.update_cts_fn()
 
     def threshtype_lr(self):
@@ -484,9 +488,13 @@ class CalibWin(QWidget, _calf.calib_functions_mixin, _ie.Imp_Exp_Mixin):
                     c = 'r'
                 else:
                     c = 'k'
-                xval = float(np.math.sqrt(
-                    0.5 * cts.ME * cts.cur_L ** 2 / cts.QE / (qq2[i] * cts.HEV * cts.cur_nu - cts.cur_Ip)) + 6e-8)
-                x = np.full((100, 1), xval)
+                try:
+                    xval = float(np.math.sqrt(
+                        0.5 * cts.ME * cts.cur_L ** 2 / cts.QE / (qq2[i] * cts.HEV * cts.cur_nu - cts.cur_Ip)) + 6e-8)
+                    # NB: cts.QE is used to convert the energy from eV to Joules. It's not the electron's charge
+                    x = np.full((100, 1), xval)
+                except Exception:
+                    print(traceback.format_exception(*sys.exc_info()))
                 self.tof_ax.plot(x, y, color=c, linewidth=1.0)
 
         if self.bgndremoved:
@@ -633,9 +641,7 @@ class rmPeaksDialog(QDialog):
 
     ''' "Remove peaks" button listener '''
     def rmpeak_lr(self):
-        print('ok1')
         del self.par.maximaIndices[self.currentindex]
-        print('ok2')
         del self.par.maximaIntensity[self.currentindex]
         self.par.refreshplot_fn()
         self.refreshTable_fn()

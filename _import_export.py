@@ -56,16 +56,14 @@ class Imp_Exp_Mixin:
             with open(calib_f, 'r') as file:
                 f = file.read().splitlines()
                 try:
-                    if (len(f) < 4):
+                    if (len(f) < 3):
                         raise IndexError
-                    cts.afit, cts.t0fit, cts.cfit, cts.first_harm = [float(f[i]) for i in range(4)]
-                    cts.first_harm = int(cts.first_harm)
+                    cts.afit, cts.t0fit, cts.cfit = [float(f[i]) for i in range(3)]
 
                     # calib_win part
                     calib_tab.calibloaded = True
                     calib_tab.calibBool = True
                     calib_tab.tof2en_btn.setEnabled(True)
-                    calib_tab.firstharm_le.setText(str(cts.first_harm))
                     calib_tab.update_fitpar_fn()
 
                     # rabbit_win part
@@ -75,7 +73,7 @@ class Imp_Exp_Mixin:
                     self.window().updateglobvar_fn()
 
                 except IndexError:
-                    print('Not enough data in the calib file. Needed: a_fit, t0_fit, c_fit and first harmonic')
+                    print('Not enough data in the calib file. Needed: a_fit, t0_fit and c_fit')
                 except ValueError:
                     print("Incorrect calibration data")
 
@@ -86,7 +84,7 @@ class Imp_Exp_Mixin:
         filename = QFileDialog.getSaveFileName(self, 'Save XUV')
         fname = filename[0]
         if fname:
-            fit_param = np.append(self.p_opt, cts.first_harm)
+            fit_param = self.p_opt
             np.savetxt(fname, fit_param, fmt='%1.4e', delimiter='\t')
 
     # called by RabbitWin

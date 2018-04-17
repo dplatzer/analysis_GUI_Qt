@@ -84,7 +84,7 @@ class calib_functions_mixin:
         if self.counts.shape[0] < 1000: # SE10
             self.counts[:, 1] = self.counts[:, 1] - self.counts[10:20, 1].mean()
         else: # SE1
-            self.counts[:, 1] = self.counts[:, 1] - self.counts[300:600, 1].mean()
+            self.counts[:, 1] = self.counts[:, 1] - self.counts[300:400, 1].mean()
 
         self.bgndremoved = True
         self.peaksfound = False
@@ -114,6 +114,7 @@ class calib_functions_mixin:
             cts.first_harm = int(self.firstharm_le.text())
             self.window().updateglobvar_fn()
             self.aguess = (0.5 * cts.ME * cts.cur_L ** 2 / cts.QE) / (cts.HEV * cts.cur_nu)
+            # NB: cts.QE is used to convert the energy from eV to Joules. It's not the electron's charge
             self.t0guess = 5.8e-8
             self.cguess = (cts.cur_Ip + cts.cur_Vp) / (cts.HEV * cts.cur_nu)
             self.aguess_lb.setText("{:.3e}".format(self.aguess))
