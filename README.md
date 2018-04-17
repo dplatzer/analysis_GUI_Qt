@@ -4,7 +4,8 @@
 
 You just need Anaconda 3 to run this code.
 
-To install it, create a virtual environment from the .yml file:
+Otherwise, to install in an environment:
+create a virtual environment from the .yml file:
 ```
 conda env create -f analysis_GUI_Qt_env.yml
 ```
