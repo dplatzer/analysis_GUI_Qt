@@ -8,7 +8,7 @@ import numpy as np
 
 import glob_var as cts
 import analysis_functions as af
-from Rabbit import Rainbow_win as Rw
+#from Rabbit import Rainbow_win as Rw
 
 
 class Rabbit_functions_mixin:
@@ -22,7 +22,7 @@ class Rabbit_functions_mixin:
         if (data_filename):
             fdir, fname = os.path.split(data_filename)
             fdir = fdir + '/'
-            flist = glob(fdir + '*delay_0*')
+            flist = glob(fdir + '*[0-9][0-9][0-9][0-9].txt')
 
             if (len(flist) != 0):
                 cts.stepsnb = len(flist)
@@ -46,7 +46,7 @@ class Rabbit_functions_mixin:
 
                     if i == 0:
                         cts.rabbit_mat = np.zeros([cts.stepsnb, cts.energy_vect.shape[0]])
-                        print(cts.rabbit_mat.shape)
+                        #print(cts.rabbit_mat.shape)
                     cts.rabbit_mat[i, :] = counts2
                     self.data_tof.append(counts)
                     i += 1
@@ -178,6 +178,12 @@ class Rabbit_functions_mixin:
 
     def normalrab_lr(self):
         ''' ANALYSIS - "Normal RABBIT" button listener'''
+        self.peak = []
+        self.peak_phase = []
+        self.fpeak = []
+        self.ampl = []
+        self.ang = []
+
         try:
             cts.rabbitmode = "normal"
             self.FT_ax.cla()
@@ -255,12 +261,13 @@ class Rabbit_functions_mixin:
             self.phase_ax.plot(sborder, attochirp, 'k')
             self.phase_fc.draw()
 
-            cts.chirp_as = self.pa[0]/(cts.cur_nu * 2*np.pi)/2 * 1e18
-            cts.chirp_as_eV = float(cts.chirp_as/(hnu))
+            cts.chirp_as = self.pa[0]/(2 * cts.cur_nu * 2*np.pi) * 1e18
+            cts.chirp_as_eV = float(cts.chirp_as/(2 * hnu))
 
             self.rainbowrab_btn.setEnabled(True)
             self.FTcontrast_btn.setEnabled(True)
             self.plotSBvsdelay_btn.setEnabled(True)
+            self.clear_btn.setEnabled(True)
 
             self.window().updateglobvar_fn()
         except:
@@ -351,3 +358,16 @@ class Rabbit_functions_mixin:
             rw = Rw.RainbowWin(self)
         except Exception:
             print(traceback.format_exception(*sys.exc_info()))
+
+    def clear_lr(self):
+        self.peak = []
+        self.peak_phase = []
+        self.fpeak = []
+        self.ampl = []
+        self.ang = []
+
+        self.phase_ax.cla()
+        self.FT_ax.cla()
+
+        self.phase_fc.draw()
+        self.FT_fc.draw()
