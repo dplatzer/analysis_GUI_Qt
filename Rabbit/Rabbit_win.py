@@ -222,19 +222,22 @@ class RabbitWin(QWidget, ie.Imp_Exp_Mixin, Raf.Rabbit_functions_mixin):
         ''' In commandLayout - Initialization of the "RABBIT" section'''
         rabbitlayout = QGridLayout()
         rabbit_box = QGroupBox("RABBIT", self)
-        rabbit_box.setFixedSize(300, 60)
+        rabbit_box.setFixedSize(300, 100)
 
         self.normalrab_btn = QPushButton("Normal", self)
         self.FTcontrast_btn = QPushButton("FT/Contrast", self)
         self.rainbowrab_btn = QPushButton("Rainbow", self)
+        self.clear_btn = QPushButton("Clear", self)
 
         self.normalrab_btn.clicked.connect(self.normalrab_lr)
         self.FTcontrast_btn.clicked.connect(self.FTcontrast_lr)
         self.rainbowrab_btn.clicked.connect(self.rainbowrab_lr)
+        self.clear_btn.clicked.connect(self.clear_lr)
 
         rabbitlayout.addWidget(self.normalrab_btn, 0, 0)
         rabbitlayout.addWidget(self.FTcontrast_btn, 0, 1)
         rabbitlayout.addWidget(self.rainbowrab_btn, 0, 2)
+        rabbitlayout.addWidget(self.clear_btn, 1, 0)
 
         rabbit_box.setLayout(rabbitlayout)
 
