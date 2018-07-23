@@ -275,6 +275,16 @@ class Rabbit_functions_mixin:
 
     def rainbowrab_lr(self):
         ''' ANALYSIS - "Rainbow RABBIT" button listener'''
+
+        self.ang_rainbow = []
+        self.ampl_rainbow = []
+        self.ampl_rainbow2 = []
+        self.peak_rainbow = []
+        self.energy_rainbow = []
+        self.energy_rainbow2 = []
+        self.peak_phase_rainbow = []
+        self.fpeak_rainbow = []
+
         try:
             cts.rabbitmode = "rainbow"
             hnu = cts.HEV * cts.cur_nu
@@ -355,7 +365,7 @@ class Rabbit_functions_mixin:
             self.FT_fc.draw()
             self.window().updateglobvar_fn()
 
-            rw = Rw.RainbowWin(self)
+            #rw = Rw.RainbowWin(self)
         except Exception:
             print(traceback.format_exception(*sys.exc_info()))
 
