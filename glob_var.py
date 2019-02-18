@@ -23,8 +23,18 @@ RFANO_AR = 26.6 # Argon
 
 ###### GLOBAL VARIABLES ###########
 ''' Global means here the variables shared by the different objects in the program'''
-minus_sign = False
 TOF_resolution = 1e-9 #1e-9 on SE1, 5e-11 on SE10
+
+Labview_version = 2016
+
+if Labview_version == 2013:
+	minus_sign = False
+	nb_lines_header = 0  # number of lines in the header of data files. These lines are skipped when loading data
+	str_glob = '*delay_0*'
+elif Labview_version == 2016:
+	minus_sign = True
+	nb_lines_header = 2  # number of lines in the header of data files. These lines are skipped when loading data
+	str_glob = '*1DViewer00Q.dat'
 
 #energy calibration
 afit = 0.0
@@ -47,7 +57,7 @@ ehigh = float(52 * HEV * cur_nu)
 dE = 0.01
 
 #scan steps
-scanstep_nm = 25
+scanstep_nm = 20
 scanstep_fs = scanstep_nm*2/(C*1e-6)
 stepsnb = 0
 
