@@ -2,17 +2,17 @@ from scipy import constants
 import numpy as np
 
 ###### DATABANK #############
-HEV = constants.physical_constants['Planck constant in eV s'][0] #Planck constant in eV
+HEV = constants.physical_constants['Planck constant in eV s'][0]  # Planck constant in eV
 ME = constants.electron_mass
 QE = constants.elementary_charge
 C = constants.speed_of_light
 
-IP_HE = 24.58739 #Helium
-IP_NE = 21.56454 #Neon
-IP_AR = 15.75961  #Argon
-IP_KR = 13.99961 #Krypton
-IP_XE = 12.12984 #Xenon
-IP_N2_X = 15.58 #N2 X
+IP_HE = 24.58739  # Helium
+IP_NE = 21.56454  # Neon
+IP_AR = 15.75961  # Argon
+IP_KR = 13.99961  # Krypton
+IP_XE = 12.12984  # Xenon
+IP_N2_X = 15.58  # N2 X
 
 GASLIST = ['He', 'Ne', 'Ar', 'Kr', 'Xe', 'N2_X']
 IPLIST = [IP_HE, IP_NE, IP_AR, IP_KR, IP_XE, IP_N2_X]
@@ -23,30 +23,40 @@ RFANO_AR = 26.6 # Argon
 
 ###### GLOBAL VARIABLES ###########
 ''' Global means here the variables shared by the different objects in the program'''
-minus_sign = False
+Labview_version = 2013
+
+if Labview_version == 2013:
+	minus_sign = False
+	nb_lines_header = 0  # number of lines in the header of data files. These lines are skipped when loading data
+	str_glob = '*delay_0*'
+elif Labview_version == 2016:
+	minus_sign = True
+	nb_lines_header = 2  # number of lines in the header of data files. These lines are skipped when loading data
+	str_glob = '*1DViewer00Q.dat'
+
 TOF_resolution = 1e-9 #1e-9 on SE1, 5e-11 on SE10
 
-#energy calibration
+# energy calibration
 afit = 0.0
 t0fit = 0.0
 cfit = 0.0
 
-#experimental parameters
+# experimental parameters
 cur_Ip = 0.0
 cur_nu = 0.0
 cur_SBi = 0
 first_harm = 0
 lambda_start = 800
 cur_nu = C / (lambda_start * 1e-9)
-cur_Vp = 0 # retarding potential
-cur_L = 2 # length of the TOF
+cur_Vp = 0  # retarding potential
+cur_L = 2  # length of the TOF
 
-#energy conversion
+# energy conversion
 elow = (first_harm - 1) * HEV * cur_nu
-ehigh = float(52 * HEV * cur_nu)
+ehigh = float(35 * HEV * cur_nu)
 dE = 0.01
 
-#scan steps
+# scan steps
 scanstep_nm = 25
 scanstep_fs = scanstep_nm*2/(C*1e-6)
 stepsnb = 0
@@ -67,9 +77,9 @@ peak = np.zeros([1,1])
 peak_phase = np.zeros([1,1])
 fpeak_main = 0
 rabbitmode = "normal"
-contrast = np.zeros([1,1])
+contrast = np.zeros([1,3])
 
-### FT and 2 omega parameters ####
+# FT and 2 omega parameters
 FT_padding = False
 FT_window = False
 FT_zero_order = True

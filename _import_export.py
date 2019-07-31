@@ -14,9 +14,18 @@ class Imp_Exp_Mixin:
 
     def import_tof(self, filename):
         with open(filename, 'r') as file:
+            i = 0
             data = []
             try:
-                data = [[float(digit) for digit in line.split()] for line in file]
+                #data = [[float(digit) for digit in line.split()] for line in file]
+                for line in file:
+                    if i < cts.nb_lines_header:
+                        # skipping header lines
+                        pass
+                    else:
+                        data.append([float(digit) for digit in line.split()])
+                    i += 1
+
                 '''
                 if cts.decimal_separ == 'dot':
                     data = [[float(digit) for digit in line.split()] for line in file]
@@ -95,12 +104,29 @@ class Imp_Exp_Mixin:
         rab_f = rab_fname[0]
         try:
             if (rab_f):
+                header = 'elow\nehigh\ndE\nstepsnb\nbscanstep_nm\nafit\nt0fit\ncfit\nfirst_harm'
                 self.rabbit_param = np.array([cts.elow, cts.ehigh, cts.dE, cts.stepsnb, cts.scanstep_nm,
                                               cts.afit, cts.t0fit, cts.cfit, cts.first_harm])
-                np.savetxt((rab_f + "_param.txt"), self.rabbit_param, fmt='%.5e', delimiter='\t')
+                np.savetxt((rab_f + "_param.txt"), self.rabbit_param, fmt='%.5e',
+                           delimiter='\t',header=header)
                 np.savetxt((rab_f + "_counts.txt"), cts.rabbit_mat, fmt='%.5e', delimiter='\t')
         except Exception:
             print(traceback.format_exception(*sys.exc_info()))
+
+    # called by RabbitWin
+    def export_2w_lr(self):
+        ''' "[Export] 2w Ampl" button listener'''
+        twow_fname = QFileDialog.getSaveFileName(self)
+        twow_f = twow_fname[0]
+        try:
+            if (twow_f):
+                data_2w = np.dstack((self.energy, cts.FT_ampl[:,self.fpeak_index]/cts.FT_ampl.max()))[0]
+                data_2w = np.array(data_2w)
+                np.savetxt((twow_f), data_2w, fmt='%.5e', delimiter='\t')
+        except Exception:
+            print(traceback.format_exception(*sys.exc_info()))
+
+
 
     # called by RainbowWin (_Rabbit_win_subwidgets.RainbowWin)
     def export_lr(self) -> None:
