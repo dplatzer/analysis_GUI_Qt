@@ -229,9 +229,9 @@ class RabbitWin(QWidget, ie.Imp_Exp_Mixin, Raf.Rabbit_functions_mixin):
         self.rainbowrab_btn = QPushButton("Rainbow", self)
         self.clear_btn = QPushButton("Clear", self)
 
-        self.normalrab_btn.clicked.connect(self.normalrab_lr)
+        self.normalrab_btn.clicked.connect(self.normal_rabbit_lr)
         self.FTcontrast_btn.clicked.connect(self.FTcontrast_lr)
-        self.rainbowrab_btn.clicked.connect(self.rainbowrab_lr)
+        self.rainbowrab_btn.clicked.connect(self.rainbow_rabbit_lr)
         self.clear_btn.clicked.connect(self.clear_lr)
 
         rabbitlayout.addWidget(self.normalrab_btn, 0, 0)
@@ -255,10 +255,13 @@ class RabbitWin(QWidget, ie.Imp_Exp_Mixin, Raf.Rabbit_functions_mixin):
         export_box.setFixedSize(300, 60)
 
         self.exportrab_btn = QPushButton("RABBIT", self)
+        self.export_2w_btn = QPushButton("2w Ampl", self)
 
         self.exportrab_btn.clicked.connect(self.exportrab_lr)
+        self.export_2w_btn.clicked.connect(self.export_2w_lr)
 
-        exportlayout.addWidget(self.exportrab_btn)
+        exportlayout.addWidget(self.exportrab_btn, 0, 0)
+        exportlayout.addWidget(self.export_2w_btn, 0, 1)
 
         export_box.setLayout(exportlayout)
 
@@ -333,7 +336,6 @@ class RabbitWin(QWidget, ie.Imp_Exp_Mixin, Raf.Rabbit_functions_mixin):
             cts.bands_vect = np.zeros([cts.bandsnb, 2])
             self.subXUV_btn.setEnabled(False)
             self.normalrab_btn.setEnabled(False)
-            self.rainbowrab_btn.setEnabled(False)
             self.FTcontrast_btn.setEnabled(False)
             self.plotSBvsdelay_btn.setEnabled(False)
             self.window().updateglobvar_fn()

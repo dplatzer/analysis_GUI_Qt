@@ -8,7 +8,6 @@ import numpy as np
 
 import glob_var as cts
 import analysis_functions as af
-#from Rabbit import Rainbow_win as Rw
 
 
 class Rabbit_functions_mixin:
@@ -22,7 +21,8 @@ class Rabbit_functions_mixin:
         if (data_filename):
             fdir, fname = os.path.split(data_filename)
             fdir = fdir + '/'
-            flist = glob(fdir + '*[0-9][0-9][0-9][0-9].txt')
+            #flist = glob(fdir + '*[0-9][0-9][0-9][0-9].txt')
+            flist = glob(fdir + cts.str_glob)
 
             if (len(flist) != 0):
                 cts.stepsnb = len(flist)
@@ -38,7 +38,8 @@ class Rabbit_functions_mixin:
                     self.window().statusBar().showMessage("Processing " + str(i))
 
                     data = np.transpose(self.import_tof(fn))
-
+                    if cts.minus_sign:
+                        data[1, :] = (-1) * data[1, :]
                     counts = data[1, :] - data[1, 300:600].mean()
                     cts.energy_vect, counts2 = af.jacobian_transform(self.tof, counts)
 
@@ -62,6 +63,7 @@ class Rabbit_functions_mixin:
                 self.selectbands_btn.setEnabled(True)
                 self.smooth_btn.setEnabled(True)
                 self.normalize_btn.setEnabled(True)
+                self.rainbowrab_btn.setEnabled(True)
                 self.exportrab_btn.setEnabled(True)
 
                 self.window().updateglobvar_fn()
@@ -108,6 +110,7 @@ class Rabbit_functions_mixin:
                 self.importrab_btn.setEnabled(True)
                 self.exportrab_btn.setEnabled(True)
                 self.selectbands_btn.setEnabled(True)
+                self.rainbowrab_btn.setEnabled(True)
                 self.normalize_btn.setEnabled(True)
                 self.smooth_btn.setEnabled(True)
                 self.importXUV_btn.setEnabled(True)
@@ -176,6 +179,174 @@ class Rabbit_functions_mixin:
 
         self.rab_widget.refreshplot_fn(signal=cts.rabbit_mat)
 
+    def normal_rabbit_lr(self):
+        cts.rabbitmode = 'normal'
+        self.rabbit_fn()
+
+    def rainbow_rabbit_lr(self):
+        cts.rabbitmode = 'rainbow'
+        self.rabbit_fn()
+
+    def rabbit_fn(self):
+        ''' ANALYSIS - either for normal or Rainbow RABBIT '''
+        # if we don't select bands, we analyse the whole spectrogram
+        #if (cts.bands_vect == np.zeros([1, 1])).all():
+        if cts.rabbitmode == "rainbow":
+            all_spectrum = True
+        else:
+            all_spectrum = False
+
+        self.peak_phase = []
+        self.fpeak = []
+        self.ampl = []
+        self.ang = []
+        self.energy = []
+
+        hnu = cts.HEV * cts.cur_nu
+        self.SBi = cts.first_harm + 1
+
+        self.FT_ax.cla()
+
+        self.phase_ax.cla()
+        self.phase_ax.set_xlabel("Energy")
+        self.phase_ax.set_ylabel("2w Phase")
+
+        if cts.xuvsubstracted:
+            signal = cts.rabbitxuvsub_mat
+        else:
+            signal = cts.rabbit_mat
+
+        jx = []
+        # if we don't select bands, we analyse the whole spectrogram
+        if all_spectrum:
+            ji = np.argmin(cts.energy_vect)
+            jf = np.argmax(cts.energy_vect)
+            jx.append([ji, jf])
+        else:
+            for xi, xf in cts.bands_vect:
+                ji = np.argmin(abs(cts.energy_vect - xi))
+                jf = np.argmin(abs(cts.energy_vect - xf)) + 1
+                jx.append([ji, jf])
+        jx = np.array(jx)
+
+        i = 0
+
+        if cts.rabbitmode == 'normal':
+            self.peak = np.zeros(cts.bandsnb)
+
+            self.FT_ax.set_xlabel("freq")
+            self.FT_ax.set_ylabel("ampl")
+
+            for ji, jf in jx[:]:
+                if ji - jf > 1:  # we integrate only if we have more than one point
+                    x_data = np.trapz(signal[:, ji:jf], cts.energy_vect[ji:jf], axis=1)
+                else:
+                    x_data = signal[:, ji]
+
+                fpeak, peak, peak_phase = af.find_2w(x_data, cts.scanstep_fs)
+                self.freqnorm, ampl, ang = af.FFT(x_data, cts.scanstep_fs)
+
+                self.ampl.append(np.array(ampl))
+                self.peak[i] = np.absolute(peak)
+                self.peak_phase.append(peak_phase)
+                self.fpeak.append(fpeak)
+                self.ang.append(ang)
+
+                self.FT_ax.plot(self.freqnorm, ampl / ampl.max(), label='SB%d' % (self.SBi + 2 * i), linewidth=1)
+
+                i += 1
+
+        elif cts.rabbitmode == 'rainbow':
+            self.FT_ax.set_xlabel("Energy")
+            self.FT_ax.set_ylabel("2w amplitude")
+
+            self.peak = []
+
+            for ji, jf in jx[:]:
+                for x in range(ji,jf):
+                    x_data = signal[:, x]
+                    f2om, peak, peak_phase = af.find_2w(x_data, cts.scanstep_fs)
+                    self.freqnorm, ampl, ang =  af.FFT(x_data, cts.scanstep_fs)
+
+                    self.ang.append(ang)
+                    self.ampl.append(ampl)
+                    self.peak.append(np.absolute(peak))
+                    self.energy.append(cts.energy_vect[x])
+                    self.peak_phase.append(peak_phase)
+                    self.fpeak.append(f2om)
+
+                #filling between bands for plot
+                if i < (cts.bandsnb - 1) and all_spectrum == False:
+                    for k in range(jx[i, 1], jx[i+1, 0]):
+                        self.energy.append(cts.energy_vect[k])
+                        self.ampl.append([1e-10]*ampl.shape[0])
+                i+=1
+
+            self.energy = np.array(self.energy)
+
+
+            """self.FT_ax.imshow(cts.FT_ampl.transpose(), extent=(self.energy[0], self.energy[-1],
+                                                          self.freqnorm[0], self.freqnorm[-1]), aspect='auto',
+                              origin='lower', interpolation='nearest')"""
+
+        else:
+            print('Incorrect cts.rabbitmode value')
+            raise ValueError
+
+        cts.FT_ampl = np.array(self.ampl)
+        cts.FT_phase = np.array(self.ang)
+        cts.fpeak = np.array(self.fpeak)
+        cts.peak = np.array(self.peak)
+        cts.peak_phase = - np.array(self.peak_phase)
+
+        # the 2w frequency that we choose (and consider the main one) is the one for which the 2w ampl is the biggest
+        # fpeak_main_i = np.argmax(cts.peak[:] / cts.FT_ampl[:, 0])  # between 0 and cts.bandsnb - 1 if normal rabbit
+        fpeak_main_i = np.argmax(cts.peak[:])  # between 0 and cts.bandsnb - 1 if normal rabbit
+        cts.fpeak_main = cts.fpeak[fpeak_main_i]
+        self.fpeak_index = np.argmin(abs(self.freqnorm - cts.fpeak_main))  # between 0 and len(self.freqnorm)
+
+        for i in range(len(cts.peak)):
+            cts.peak[i] = cts.FT_ampl[i, self.fpeak_index]
+            cts.peak_phase[i] = -1 * (cts.FT_phase[i, self.fpeak_index] + cts.two_w_phioffset)
+            # cts.contrast[i, 2] = 2 * cts.peak[i] / cts.FT_ampl[i, 0]
+        cts.peak_phase = np.unwrap(cts.peak_phase)
+
+
+        if cts.rabbitmode == 'normal':
+            sborder = np.linspace(self.SBi, self.SBi + 2 * (cts.bandsnb - 1), cts.bandsnb)
+            self.pa = np.polyfit(sborder, cts.peak_phase, 1)
+            attochirp = self.pa[0] * np.append(sborder, sborder[-1]+2) + self.pa[1]
+            cts.chirp_as = self.pa[0] / (
+                    cts.cur_nu * 2 * np.pi) * 1e18  # there is a factor of 2 due to the way pa is calculated
+            cts.chirp_as_eV = float(cts.chirp_as / (2 * hnu))
+
+            self.phase_ax.plot(sborder * hnu, cts.peak_phase, 'm', marker='s')
+            self.phase_ax.plot(np.append(sborder, sborder[-1]+2) * hnu, attochirp, 'k')
+
+        elif cts.rabbitmode == 'rainbow':
+            self.phase_ax.plot(self.energy, cts.peak_phase, 'ms', markersize=2)
+            self.FT_ax.plot(self.energy, cts.FT_ampl[:,self.fpeak_index]/cts.FT_ampl.max())
+
+        """
+        leg = self.FT_ax.legend()
+        for label in leg.get_texts():
+            label.set_fontsize(8)
+        for label in leg.get_lines():
+            label.set_linewidth(1)"""
+        #self.FT_ax.relim()
+        #self.FT_ax.autoscale()
+        self.FT_fc.draw()
+
+        self.phase_fc.draw()
+
+        if cts.rabbitmode == 'normal':
+            self.FTcontrast_btn.setEnabled(True)
+        self.export_2w_btn.setEnabled(True)
+        self.plotSBvsdelay_btn.setEnabled(True)
+        self.clear_btn.setEnabled(True)
+
+        self.window().updateglobvar_fn()
+
     def normalrab_lr(self):
         ''' ANALYSIS - "Normal RABBIT" button listener'''
         self.peak = []
@@ -213,14 +384,17 @@ class Rabbit_functions_mixin:
                     x_data = signal[:, ji]
                 fpeak, peak, peak_phase = af.find_2w(x_data, cts.scanstep_fs)
                 self.freqnorm, ampl, ang = af.FFT(x_data, cts.scanstep_fs)
-                ampl = np.array(ampl)
 
-                self.FT_ax.plot(self.freqnorm, ampl/ampl.max(), label='SB%d' %(self.SBi + 2*i), linewidth=1)
+                ampl = np.array(ampl)
+                self.ampl.append(ampl)
+
                 self.peak[i] = np.absolute(peak)
                 self.peak_phase.append(peak_phase)
                 self.fpeak.append(fpeak)
-                self.ampl.append(ampl)
                 self.ang.append(ang)
+
+                self.FT_ax.plot(self.freqnorm, ampl / ampl.max(), label='SB%d' % (self.SBi + 2 * i), linewidth=1)
+
                 i += 1
 
             cts.FT_ampl = np.array(self.ampl)
@@ -230,9 +404,10 @@ class Rabbit_functions_mixin:
             cts.peak_phase = - np.array(self.peak_phase)
             cts.peak_phase = np.unwrap(cts.peak_phase)
 
-            fpeak_main_i = np.argmax(cts.peak[:]/cts.FT_ampl[:, 0]) #between 0 and cts.bandsnb - 1
+            # the 2w frequency that we choose (and consider the main one) is the one for which the 2w ampl is the biggest
+            fpeak_main_i = np.argmax(cts.peak[:]/cts.FT_ampl[:, 0])  # between 0 and cts.bandsnb - 1
             cts.fpeak_main = cts.fpeak[fpeak_main_i]
-            self.fpeak_index = np.argmin(abs(self.freqnorm - cts.fpeak_main)) #between 0 and len(self.freqnorm)
+            self.fpeak_index = np.argmin(abs(self.freqnorm - cts.fpeak_main))  # between 0 and len(self.freqnorm)
 
             for i in range(cts.bandsnb):
                 cts.peak[i] = cts.FT_ampl[i, self.fpeak_index]
@@ -253,6 +428,8 @@ class Rabbit_functions_mixin:
             sborder = np.linspace(self.SBi, self.SBi + 2*(cts.bandsnb-1), cts.bandsnb)
             self.pa = np.polyfit(sborder, cts.peak_phase, 1)
             attochirp = self.pa[0]*sborder + self.pa[1]
+            print(sborder)
+
 
             self.phase_ax.cla()
             self.phase_ax.set_xlabel("SB")
@@ -260,9 +437,11 @@ class Rabbit_functions_mixin:
             self.phase_ax.plot(sborder, cts.peak_phase, 'm', marker = 's')
             self.phase_ax.plot(sborder, attochirp, 'k')
             self.phase_fc.draw()
+            print(cts.peak_phase)
 
-            cts.chirp_as = self.pa[0]/(2 * cts.cur_nu * 2*np.pi) * 1e18
+            cts.chirp_as = self.pa[0]/(cts.cur_nu * 2*np.pi) * 1e18 # there is a factor of 2 due to the way pa is calculated
             cts.chirp_as_eV = float(cts.chirp_as/(2 * hnu))
+            print(self.pa)
 
             self.rainbowrab_btn.setEnabled(True)
             self.FTcontrast_btn.setEnabled(True)
@@ -275,6 +454,15 @@ class Rabbit_functions_mixin:
 
     def rainbowrab_lr(self):
         ''' ANALYSIS - "Rainbow RABBIT" button listener'''
+        self.ang_rainbow = []
+        self.ampl_rainbow = []
+        self.ampl_rainbow2 = []
+        self.peak_rainbow = []
+        self.energy_rainbow = []
+        self.energy_rainbow2 = []
+        self.peak_phase_rainbow = []
+        self.fpeak_rainbow = []
+
         try:
             cts.rabbitmode = "rainbow"
             hnu = cts.HEV * cts.cur_nu
@@ -293,6 +481,10 @@ class Rabbit_functions_mixin:
             else:
                 signal = cts.rabbit_mat
 
+            self.FT_ax.cla()
+            self.FT_ax.set_xlabel("Harmonic order")
+            self.FT_ax.set_ylabel("frequency")
+
             j=0
             for ii, jj in jx[:]:
                 for x in range(ii,jj):
@@ -300,9 +492,10 @@ class Rabbit_functions_mixin:
                     f2om, peak, peak_phase = af.find_2w(x_data, cts.scanstep_fs)
                     self.freqnorm, ampl, ang =  af.FFT(x_data, cts.scanstep_fs)
 
+
                     self.ang_rainbow.append(ang)
                     self.ampl_rainbow.append(ampl/ampl.max())
-                    self.ampl_rainbow2.append(ampl/ampl.max())
+                    self.ampl_rainbow2.append(ampl)
                     self.peak_rainbow.append(np.absolute(peak))
                     self.energy_rainbow.append(cts.energy_vect[x])
                     self.energy_rainbow2.append(cts.energy_vect[x])
@@ -315,6 +508,7 @@ class Rabbit_functions_mixin:
                         self.energy_rainbow2.append(cts.energy_vect[k])
                         self.ampl_rainbow2.append([1e-10]*ampl.shape[0])
                 j+=1
+
             cts.FT_ampl = np.array(self.ampl_rainbow)
             cts.FT_ampl = np.transpose(cts.FT_ampl)
             cts.FT_phase = np.array(self.ang_rainbow)
@@ -346,16 +540,14 @@ class Rabbit_functions_mixin:
             self.phase_ax.plot(self.energy_rainbow/hnu, self.pa[0]*self.energy_rainbow/hnu + self.pa[1])
             self.phase_fc.draw()
 
-            self.FT_ax.cla()
-            self.FT_ax.set_xlabel("Harmonic order")
-            self.FT_ax.set_ylabel("frequency")
-            self.FT_ax.imshow(self.ampl_rainbow2, extent=(self.energy_rainbow2[0]/hnu,self.energy_rainbow2[-1]/hnu,
+            self.FT_ax.plot(self.energy_rainbow2 / hnu, self.ampl_rainbow2[self.fpeak_index,:], linewidth=1)
+            """self.FT_ax.imshow(self.ampl_rainbow2, extent=(self.energy_rainbow2[0]/hnu,self.energy_rainbow2[-1]/hnu,
                                                           self.freqnorm[0], self.freqnorm[-1]), aspect='auto',
-                                                        origin='lower', interpolation='nearest')
+                                                        origin='lower', interpolation='nearest')"""
+            self.FT_ax.plot()
             self.FT_fc.draw()
             self.window().updateglobvar_fn()
 
-            rw = Rw.RainbowWin(self)
         except Exception:
             print(traceback.format_exception(*sys.exc_info()))
 
