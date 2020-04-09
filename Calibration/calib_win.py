@@ -2,8 +2,9 @@ import sys, traceback
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QPushButton, QApplication, QGridLayout, QHBoxLayout, QVBoxLayout, QGroupBox, QLabel
 from PyQt5.QtWidgets import QLineEdit, QCheckBox, QComboBox, QRadioButton, QButtonGroup, QFileDialog, QDialog, QTableWidget
-from PyQt5.QtWidgets import QTableWidgetItem, QTableView
-from matplotlib.backends.backend_qt5agg import FigureCanvas, NavigationToolbar2QT
+from PyQt5.QtWidgets import QTableWidgetItem, QTableView, QFrame, QSplitter
+from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import numpy as np
 
@@ -53,14 +54,13 @@ class CalibWin(QWidget, _calf.calib_functions_mixin, _ie.Imp_Exp_Mixin):
         self.commandlayout = QVBoxLayout()
         self.commandlayout.setSpacing(10)
 
-
-
         # initialization of all the widgets/layouts
         self.init_btnlayout()
         self.init_tof2evlayout()
         self.init_eparlayout()
         self.init_fitparlayout()
         self.init_envectlayout()
+        self.init_exportlayout()
         self.init_tofgraphlayout()
         self.init_graphauxlayout()
 
@@ -69,7 +69,7 @@ class CalibWin(QWidget, _calf.calib_functions_mixin, _ie.Imp_Exp_Mixin):
             if isinstance(widget, QPushButton):
                 widget.setSizePolicy(0, 0)
 
-        self.mainlayout.addLayout(self.graphlayout)
+        self.mainlayout.addWidget(self.splitter2)
         self.mainlayout.addLayout(self.commandlayout)
         self.setLayout(self.mainlayout)
 
@@ -97,51 +97,105 @@ class CalibWin(QWidget, _calf.calib_functions_mixin, _ie.Imp_Exp_Mixin):
 
         self.counts = []
 
-        self.gas_combo.setCurrentIndex(2)  # Argon
+        self.gas_combo.setCurrentIndex(cts.cur_gas_index)
+        self.software_combo.setCurrentIndex(cts.software_version)
 
     def init_btnlayout(self):
         ''' In commandLayout - Initialization of the top right part of the layout, with 6 buttons (see just below)'''
 
         btnlayout = QGridLayout()
         btnlayout.setSpacing(10)
+        btn_gb = QGroupBox()
 
         self.load_btn = QPushButton("Load data", self)
         self.rmbgnd_btn = QPushButton("Remove bgnd", self)
         self.findpeaks_btn = QPushButton("Find peaks", self)
         self.rmpeaks_btn = QPushButton("Remove peaks", self)
-        self.exportcalib_btn = QPushButton("Export calib", self)
-        self.importcalib_btn = QPushButton("Import calib", self)
-        self.exportXUV_btn = QPushButton("Export XUV", self)
+
+        self.scan_i_le = QLineEdit(str(cts.scan_i), self)
+        self.spectrum_i_le = QLineEdit(str(cts.spectrum_i), self)
+        self.skiplines_le = QLineEdit(str(cts.skiplines), self)
+        self.filenametype_le = QLineEdit(str(cts.filenametype), self)
+
+        # remove background average
+        rmbg_avg_layout = QGridLayout()
+        rmbg_avg_layout.setSpacing(10)
+        self.rmbg_avg_box = QGroupBox(self)
+        self.rmbg_avg_box.setTitle("Remove background")
+        self.rmbg_avg_box.setFixedHeight(90)
+        self.rmbg_avg_box.setSizePolicy(0, 0)
+
+        self.rmbg_avg_min_le = QLineEdit(str(cts.rmbg_avg_min), self)
+        self.rmbg_avg_max_le = QLineEdit(str(cts.rmbg_avg_max), self)
+
+        rmbg_avg_layout.addWidget(QLabel("average between"), 0, 0)
+        rmbg_avg_layout.addWidget(self.rmbg_avg_min_le, 0, 1)
+        rmbg_avg_layout.addWidget(QLabel("and"), 0, 2)
+        rmbg_avg_layout.addWidget(self.rmbg_avg_max_le, 0, 3)
+        rmbg_avg_layout.addWidget(self.rmbgnd_btn, 1, 0)
+        self.rmbg_avg_box.setLayout(rmbg_avg_layout)
+
+        self.rmbg_avg_min_le.setSizePolicy(0, 0)
+        self.rmbg_avg_min_le.setFixedSize(50, 20)
+        self.rmbg_avg_max_le.setSizePolicy(0, 0)
+        self.rmbg_avg_max_le.setFixedSize(50, 20)
+        self.scan_i_le.setSizePolicy(0, 0)
+        self.scan_i_le.setFixedSize(40, 20)
+        self.spectrum_i_le.setSizePolicy(0, 0)
+        self.spectrum_i_le.setFixedSize(40, 20)
+        self.skiplines_le.setSizePolicy(0, 0)
+        self.skiplines_le.setFixedSize(40, 20)
 
         self.rmbgnd_btn.setEnabled(False)
         self.findpeaks_btn.setEnabled(False)
         self.rmpeaks_btn.setEnabled(False)
-        self.exportcalib_btn.setEnabled(False)
-        self.importcalib_btn.setEnabled(False)
-        self.exportXUV_btn.setEnabled(False)
+
+        if cts.software_version != 2:
+            self.spectrum_i_le.setEnabled(False)
+            self.scan_i_le.setEnabled(False)
 
         self.load_btn.clicked.connect(self.loadfile_lr)
         self.rmbgnd_btn.clicked.connect(self.rmbgnd_lr)
         self.findpeaks_btn.clicked.connect(self.findpeaks_lr)
-        self.importcalib_btn.clicked.connect(self.importcalib_lr)
         self.rmpeaks_btn.clicked.connect(self.removepeaks_lr)
-        self.exportXUV_btn.clicked.connect(self.exportXUV_lr)
-        self.exportcalib_btn.clicked.connect(self.exportcalib_lr)
+
+        self.rmbg_avg_min_le.returnPressed.connect(self.update_rmbg_avg_fn)
+        self.rmbg_avg_max_le.returnPressed.connect(self.update_rmbg_avg_fn)
+        self.spectrum_i_le.returnPressed.connect(self.update_spectrum_i)
+        self.scan_i_le.returnPressed.connect(self.update_scan_i)
+        self.skiplines_le.returnPressed.connect(self.update_skiplines)
+        self.filenametype_le.returnPressed.connect(self.update_filenametype)
+
+        self.software_combo = QComboBox()
+        self.software_combo.addItems(cts.SOFTWARE_LIST)
+        self.software_combo.currentIndexChanged.connect(self.software_combo_lr)
 
         btnlayout.addWidget(self.load_btn, 0, 0)
-        btnlayout.addWidget(self.rmbgnd_btn, 0, 1)
-        btnlayout.addWidget(self.findpeaks_btn, 1, 0)
-        btnlayout.addWidget(self.rmpeaks_btn, 1, 1)
-        btnlayout.addWidget(self.exportcalib_btn, 1, 3)
-        btnlayout.addWidget(self.importcalib_btn, 1, 2)
-        btnlayout.addWidget(self.exportXUV_btn, 0, 3)
-        self.commandlayout.addLayout(btnlayout)
+        btnlayout.addWidget(QLabel("Scan"), 1, 0)
+        btnlayout.addWidget(self.scan_i_le, 1, 1)
+        btnlayout.addWidget(QLabel("Spectrum"), 2, 0)
+        btnlayout.addWidget(self.spectrum_i_le, 2, 1)
+        btnlayout.addWidget(QLabel("Skip lines"), 1, 2)
+        btnlayout.addWidget(self.skiplines_le, 2, 2)
+        btnlayout.addWidget(QLabel("Software"), 1, 3)
+        btnlayout.addWidget(self.software_combo, 2, 3)
+        btnlayout.addWidget(QLabel("File name type"), 3, 2, 1, 2)
+        btnlayout.addWidget(self.filenametype_le, 4, 2, 1, 2)
+        btnlayout.addWidget(self.findpeaks_btn, 0, 2)
+        btnlayout.addWidget(self.rmpeaks_btn, 0, 3)
+        btnlayout.addWidget(self.rmbg_avg_box, 5, 0, 1, 4)
+
+        btn_gb.setLayout(btnlayout)
+        btn_gb.setSizePolicy(0, 0)
+
+        self.commandlayout.addWidget(btn_gb)
 
     def init_tof2evlayout(self):
         ''' In commandLayout - Initialization of the tof to eV section: parameters of the af.find_local_maxima function,
             'TOF to energy' button and 'with sidebands checkbox' '''
 
         tof2evlayout = QHBoxLayout()
+        tof2ev_box = QGroupBox()
         flmlayout = QGridLayout()
         flmlayout.setSpacing(10)
         self.flm_box = QGroupBox(self)
@@ -163,24 +217,26 @@ class CalibWin(QWidget, _calf.calib_functions_mixin, _ie.Imp_Exp_Mixin):
             if isinstance(widget, QLineEdit):
                 widget.setSizePolicy(0, 0)
                 widget.setFixedSize(50, 20)
+        self.flm_box.setSizePolicy(0, 0)
 
         self.tof2en_btn = QPushButton("TOF to energy", self)
         self.tof2en_btn.clicked.connect(self.tof2en_lr)
         self.tof2en_btn.setEnabled(False)
 
         self.withsb_cb = QCheckBox("With sidebands", self)
+        self.withsb_cb.setSizePolicy(0, 0)
         self.withsb_cb.stateChanged.connect(self.withsb_fn)
 
         tof2evlayout.addWidget(self.flm_box)
         tof2evlayout.addWidget(self.withsb_cb)
         tof2evlayout.addWidget(self.tof2en_btn)
-        self.commandlayout.addLayout(tof2evlayout)
+        tof2ev_box.setLayout(tof2evlayout)
+        tof2ev_box.setSizePolicy(0, 0)
+        self.commandlayout.addWidget(tof2ev_box)
 
     def init_eparlayout(self):
         ''' In commandLayout - Initialization of the experimental parameters section: Retarding potential, TOF length,
             wavelength, gas and first harmonic expected to see.'''
-
-        gases = cts.GASLIST
 
         epar_box = QGroupBox(self)
         epar_box.setTitle("Experimental parameters")
@@ -192,7 +248,7 @@ class CalibWin(QWidget, _calf.calib_functions_mixin, _ie.Imp_Exp_Mixin):
         self.toflength_le = QLineEdit(str(cts.cur_L), self)
         self.wvlength_le = QLineEdit(str(cts.lambda_start), self)
         self.gas_combo = QComboBox(self)
-        self.gas_combo.addItems(gases)
+        self.gas_combo.addItems(cts.GASLIST)
         self.firstharm_le = QLineEdit(str(cts.first_harm), self)
 
         self.retpot_le.returnPressed.connect(self.update_cts_fn)
@@ -265,6 +321,9 @@ class CalibWin(QWidget, _calf.calib_functions_mixin, _ie.Imp_Exp_Mixin):
     def init_envectlayout(self):
         ''' In commandLayout - Initialization of the resulting energy vector section, with elow, ehigh and dE'''
 
+        self.envect_export_layout = QHBoxLayout()  # for both energy vector and export boxes
+        self.envect_export_box = QGroupBox()
+
         envect_box = QGroupBox()
         envect_box.setTitle("Energy vector parameters")
         envect_box.setSizePolicy(0, 0)
@@ -293,11 +352,37 @@ class CalibWin(QWidget, _calf.calib_functions_mixin, _ie.Imp_Exp_Mixin):
                 widget.setSizePolicy(0, 0)
                 widget.setFixedSize(55, 20)
 
-        self.commandlayout.addWidget(envect_box)
+        self.envect_export_layout.addWidget(envect_box)
         self.update_envect_fn()
+
+    def init_exportlayout(self):
+        exportlayout = QHBoxLayout()
+
+        self.exportcalib_btn = QPushButton("Export calib", self)
+        self.exportXUV_btn = QPushButton("Export XUV", self)
+
+        self.exportcalib_btn.setEnabled(False)
+        self.exportXUV_btn.setEnabled(False)
+
+        self.exportXUV_btn.clicked.connect(self.exportXUV_lr)
+        self.exportcalib_btn.clicked.connect(self.exportcalib_lr)
+
+        exportlayout.addWidget(self.exportcalib_btn)
+        exportlayout.addWidget(self.exportXUV_btn)
+
+        self.envect_export_layout.addLayout(exportlayout)
+        self.envect_export_box.setLayout(self.envect_export_layout)
+        self.envect_export_box.setSizePolicy(0, 0)
+        self.commandlayout.addWidget(self.envect_export_box)
+
+        empty = QWidget()
+        empty.setSizePolicy(0, 1)
+        self.commandlayout.addWidget(empty)
 
     def init_tofgraphlayout(self):
         ''' In graphLayout - Initialization of the top figure on the window, where the time of flight is plotted'''
+        self.splitter1 = QSplitter(Qt.Horizontal)
+        self.splitter2 = QSplitter(Qt.Vertical)
 
         tof_fig = Figure(figsize=(4, 3), dpi=100)
         self.tof_fc = FigureCanvas(tof_fig)
@@ -361,13 +446,19 @@ class CalibWin(QWidget, _calf.calib_functions_mixin, _ie.Imp_Exp_Mixin):
         self.graphlayout.addWidget(self.tof_fc)
         self.graphlayout.addWidget(tof_nav)
         self.graphlayout.addLayout(tgparalayout)
+        self.graph_frame = QFrame()
+        self.graph_frame.setLayout(self.graphlayout)
 
     def init_graphauxlayout(self):
         ''' In graphLayout - Initialization the two bottom figures on the window'''
 
         graphauxlayout = QHBoxLayout()
         ga1layout = QVBoxLayout()
+        self.ga1_frame = QFrame()
+        self.ga1_frame.setLayout(ga1layout)
         ga2layout = QVBoxLayout()
+        self.ga2_frame = QFrame()
+        self.ga2_frame.setLayout(ga2layout)
 
         fit_fig = Figure(figsize=(2, 2), dpi=100)
         self.fit_fc = FigureCanvas(fit_fig)
@@ -388,12 +479,82 @@ class CalibWin(QWidget, _calf.calib_functions_mixin, _ie.Imp_Exp_Mixin):
         ga2layout.addWidget(self.en_fc)
         ga2layout.addWidget(en_nav)
 
-        graphauxlayout.addLayout(ga1layout)
-        graphauxlayout.addLayout(ga2layout)
-        self.graphlayout.addLayout(graphauxlayout)
+        self.splitter1.addWidget(self.ga1_frame)
+        self.splitter1.addWidget(self.ga2_frame)
+
+        self.splitter2.addWidget(self.graph_frame)
+        self.splitter2.addWidget(self.splitter1)
 
     #################################################################################
     ############################ Other methods ######################################
+
+    def software_combo_lr(self, i):
+        # Labview 2013
+        if i == 0:
+            cts.minus_sign = False
+            cts.skiplines = 0  # number of lines in the header of data files. These lines are skipped when loading data
+            cts.filenametype = '*delay_0*'
+            self.scan_i_le.setEnabled(False)
+            self.spectrum_i_le.setEnabled(False)
+
+        # Labview 2016
+        elif i == 1:
+            cts.minus_sign = False
+            cts.skiplines = 1200  # number of lines in the header of data files. These lines are skipped when loading data
+            cts.filenametype = '*_PE_c00*.LCY'
+            self.scan_i_le.setEnabled(False)
+            self.spectrum_i_le.setEnabled(False)
+
+        # PyMoDAQ
+        elif i == 2:
+            cts.minus_sign = False
+            cts.skiplines = 0
+            cts.filenametype = 'Not needed'
+            self.scan_i_le.setEnabled(True)
+            self.spectrum_i_le.setEnabled(True)
+
+        else:
+            print('Incorrect Labview version value')
+            raise ValueError
+        cts.software_version = i
+        self.skiplines_le.setText(str(cts.skiplines))
+        self.filenametype_le.setText(str(cts.filenametype))
+        self.window().updateglobvar_fn()
+
+    def update_filenametype(self):
+        cts.filenametype = self.filenametype_le.text()
+
+    def update_skiplines(self):
+        try:
+            cts.skiplines = int(self.skiplines_le.text())
+        except ValueError:
+            pass
+        finally:
+            self.skiplines_le.setText(str(cts.skiplines))
+            self.window().updateglobvar_fn()
+
+    def update_scan_i(self):
+        try:
+            cts.scan_i = int(self.scan_i_le.text())
+            if cts.scan_i < 10:
+                cts.str_scan_i = "".join(["00", str(cts.scan_i)])
+            # I assume that we do less than 99 scans a day!
+            else:
+                cts.str_scan_i = "".join(["0", str(cts.scan_i)])
+        except ValueError:
+            cts.scan_i = 0
+            cts.str_scan_i = '000'
+        finally:
+            self.scan_i_le.setText(str(cts.scan_i))
+            self.window().updateglobvar_fn()
+
+    def update_spectrum_i(self):
+        try:
+            cts.spectrum_i = int(self.spectrum_i_le.text())
+        except ValueError:
+            cts.spectrum_i = 0
+        finally:
+            self.spectrum_i_le.setText(str(cts.spectrum_i))
 
     def update_fitpar_fn(self):
         ''' Updating the fit parameters on the window'''
@@ -418,6 +579,7 @@ class CalibWin(QWidget, _calf.calib_functions_mixin, _ie.Imp_Exp_Mixin):
         cts.cur_Ip = cts.IPLIST[i]
         cts.first_harm = cts.FIRST_HARMLIST[i]
         self.firstharm_le.setText(str(cts.first_harm))
+        cts.SBi = cts.first_harm + 1
         cts.elow = (cts.first_harm - 1) * cts.HEV * cts.cur_nu
         self.elow_le.setText("{:.2f}".format(cts.elow))
         self.update_cts_fn()
@@ -462,8 +624,8 @@ class CalibWin(QWidget, _calf.calib_functions_mixin, _ie.Imp_Exp_Mixin):
         ymin, ymax = self.tof_ax.get_ylim()
         self.tof_ax.cla()
 
-        self.tof_ax.xaxis.set_major_formatter(FormatStrFormatter('%2.e'))
-        self.tof_ax.yaxis.set_major_formatter(FormatStrFormatter('%1.e'))
+        # self.tof_ax.xaxis.set_major_formatter(FormatStrFormatter('%2.e'))
+        # self.tof_ax.yaxis.set_major_formatter(FormatStrFormatter('%1.e'))
         self.tof_ax.set_ylabel("counts (arb. units)")
         self.tof_ax.set_xlabel("TOF (s)")
 
@@ -567,7 +729,6 @@ class CalibWin(QWidget, _calf.calib_functions_mixin, _ie.Imp_Exp_Mixin):
             if isinstance(w, QPushButton) or isinstance(w, QCheckBox):
                 w.setEnabled(False)
         self.load_btn.setEnabled(True)
-        self.importcalib_btn.setEnabled(False)
 
         self.minus_sign_cb.setEnabled(False)
 

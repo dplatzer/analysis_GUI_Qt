@@ -29,11 +29,12 @@ class calib_functions_mixin:
 
             self.thxmin = 0
             self.thy = 0
+            print(self.counts.shape)
             self.thxmax = self.counts[-1, 0]
 
             self.tof_ax.plot(self.counts[:, 0], self.counts[:, 1])
 
-            self.tof_ax.xaxis.set_major_formatter(FormatStrFormatter('%.2e'))
+            self.tof_ax.ticklabel_format(axis='x',style='sci',scilimits=(-1,1))
             self.tof_fc.draw()
 
             self.rmbgnd_btn.setEnabled(True)
@@ -47,7 +48,6 @@ class calib_functions_mixin:
             self.xmax_rb.setEnabled(True)
             self.clear_btn.setEnabled(True)
             self.minus_sign_cb.setEnabled(True)
-            self.importcalib_btn.setEnabled(True)
             self.withsb_cb.setEnabled(True)
 
             self.dataloaded = True
@@ -81,20 +81,27 @@ class calib_functions_mixin:
 
     def rmbgnd_lr(self):
         ''' "remove bgnd" button listener'''
-        if self.counts.shape[0] < 1000: # SE10
-            self.counts[:, 1] = self.counts[:, 1] - self.counts[10:20, 1].mean()
-        else: # SE1
-            self.counts[:, 1] = self.counts[:, 1] - self.counts[300:400, 1].mean()
+        try:
+            if cts.rmbg_avg_min == cts.rmbg_avg_max \
+                or cts.rmbg_avg_min > len(self.counts[:, 1]):
+                raise ValueError
 
-        self.bgndremoved = True
-        self.peaksfound = False
+            self.counts[:, 1] = self.counts[:, 1] - \
+                                self.counts[cts.rmbg_avg_min:cts.rmbg_avg_max, 1].mean()
 
-        self.reset_thresholds()
 
-        self.rmpeaks_btn.setEnabled(False)
-        self.tof2en_btn.setEnabled(False)
-        self.rmbgnd_btn.setEnabled(False)
-        self.refreshplot_fn()
+            self.bgndremoved = True
+            self.peaksfound = False
+
+            self.reset_thresholds()
+
+            self.rmpeaks_btn.setEnabled(False)
+            self.tof2en_btn.setEnabled(False)
+            self.rmbgnd_btn.setEnabled(False)
+            self.refreshplot_fn()
+
+        except ValueError:
+            print('Error, check that min and max values correspond to current data')
 
     def reset_thresholds(self):
         self.threshyBool = False
@@ -125,13 +132,23 @@ class calib_functions_mixin:
         except ZeroDivisionError:
             print('ZeroDivisionError')
 
-    ''' "find peaks" button listener '''
+    def update_rmbg_avg_fn(self):
+        ''' Updates the min and max value for the average of the background substraction'''
+        try:
+            cts.rmbg_avg_min = min(int(self.rmbg_avg_min_le.text()), cts.rmbg_avg_max)
+            cts.rmbg_avg_max = max(cts.rmbg_avg_min, int(self.rmbg_avg_max_le.text()))
+            self.rmbg_avg_min_le.setText(str(cts.rmbg_avg_min))
+            self.rmbg_avg_max_le.setText(str(cts.rmbg_avg_max))
+
+        except ValueError:
+            print('Incorrect value')
+
     def findpeaks_lr(self):
+        ''' "find peaks" button listener '''
 
         nbpts_data = self.counts.shape[0]
         nbpts_pow = int(np.log(nbpts_data)/np.log(2)) # I take the highest power of two inferior to the number of points
         nbpts = 2**nbpts_pow
-        print(nbpts)
 
         try:
             ip, dp, convolution = af.find_local_maxima(self.counts[:, 1], self.thy, self.thxmin, self.thxmax, nbpts,
@@ -187,16 +204,27 @@ class calib_functions_mixin:
         self.window().updateglobvar_fn()
 
         tof = self.counts[:, 0]
-        tof = tof[::-1]
+        tof2 = tof[::-1]
         signal = self.counts[:, 1]
-        self.Eevlin, self.signal = af.jacobian_transform(tof, signal)
+        self.Eevlin, self.signal = af.jacobian_transform(tof2, signal)
 
         self.en_ax.set_xlabel("Energy (eV)")
         self.en_ax.set_ylabel("counts (arb. units)")
         self.en_ax.plot(self.Eevlin, self.signal)
-        self.en_ax.set_xlim(0, 50)
+        self.en_ax.set_xlim(self.Eevlin[0], self.Eevlin[-1])
 
         self.exportXUV_btn.setEnabled(True)
+
+        int = np.trapz(self.signal, self.Eevlin, axis=0)
+        tof_i = np.argmin(np.abs(tof - af.eeV2tof(cts.ehigh)))
+        tof_f = np.argmin(np.abs(tof - af.eeV2tof(cts.elow)))
+        print('tof limits:')
+        print(tof_i, tof_f)
+        int_tof = np.trapz(signal[tof_i:tof_f], tof[tof_i:tof_f], axis=0)
+        ratio = int / int_tof
+        print('int: ', int)
+        print('ratio: ', ratio)
+        cts.signal_test = np.array(self.signal)
 
         self.fit_fc.draw()
         self.en_fc.draw()
