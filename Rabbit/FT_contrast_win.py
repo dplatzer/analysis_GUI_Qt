@@ -217,7 +217,7 @@ class FTContrastWin(QDialog):
         i=0
         for ii, jj in self.jx[:]:
             x_data=np.trapz(cts.rabbit_mat[:, ii:jj], cts.energy_vect[ii:jj], axis=1)
-            fpeak, peak, peak_phase = af.find_2w(x_data, cts.scanstep_fs)
+            fpeak, peak, peak_phase, phase_err = af.find_2w(x_data, cts.scanstep_fs)
             self.peak[i] = np.absolute(peak)
             self.peak_phase.append(peak_phase)
             self.fpeak.append(fpeak)
@@ -266,8 +266,8 @@ class FTContrastWin(QDialog):
             self.peaksTable.setItem(i+1, 0, QTableWidgetItem(str(self.SBi + 2 * i)))
             self.peaksTable.setItem(i+1, 1, QTableWidgetItem("{:.3f}".format(self.contrast[i])))
             self.peaksTable.setItem(i+1, 2, QTableWidgetItem("{:.3f}".format(self.contrast_int[i])))
-            self.peaksTable.setItem(i+1, 3, QTableWidgetItem("{:.3f}".format(self.fpeak[i])))
-            self.peaksTable.setItem(i+1, 4, QTableWidgetItem("{:.3f}".format(self.peak_phase[i])))
+            # self.peaksTable.setItem(i+1, 3, QTableWidgetItem("{:.3f}".format(self.fpeak[i])))
+            self.peaksTable.setItem(i+1, 4, QTableWidgetItem("{:.3f}".format(cts.peak_phase[i])))
 
         w = 0
         for i in range(self.peaksTable.columnCount()):
