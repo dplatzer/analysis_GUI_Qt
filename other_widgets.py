@@ -4,6 +4,8 @@ from matplotlib.backends.backend_qt5agg import FigureCanvas, NavigationToolbar2Q
 from matplotlib.figure import Figure
 import numpy as np
 
+import analysis_functions as af
+
 class plot3DWidget(QWidget):
     def __init__(self, parent) -> None:
         super(plot3DWidget, self).__init__(parent)
@@ -94,11 +96,15 @@ class plot3DWidget(QWidget):
 
     ''' color slider listener'''
     def colorsld_lr(self, value) -> None:
+        self.slider_value = value
         if(self.dataplotted):
-            self.refreshplot_fn(value=value)
+            self.refreshplot_fn(keep_lims=True)
 
     ''' Updating the graph'''
-    def refreshplot_fn(self, x=None, y=None, signal=None, value=25) -> None:
+    def refreshplot_fn(self, x=None, y=None, signal=None, keep_lims=False) -> None:
+        xmin, xmax = self.ax.get_xlim()
+        ymin, ymax = self.ax.get_ylim()
+
         if x is None:
             x = self.x
         else:
@@ -112,12 +118,15 @@ class plot3DWidget(QWidget):
         else:
             self.signal = signal
 
+        if keep_lims:
+            val = float(self.slider_value)
+        else:
+            val = float(25)
+
         self.ax.cla()
 
         self.ax.set_xlabel(self.xlabel)
         self.ax.set_ylabel(self.ylabel)
-
-        val = float(value)
 
         if self.logscale:
             sig = np.log(signal)
@@ -130,10 +139,14 @@ class plot3DWidget(QWidget):
 
         if(self.colorauto_cb.isChecked()):
             im = self.ax.imshow(sig, extent=(x[0],x[-1], y[0], y[-1]), aspect='auto', origin='lower',
-                                                    interpolation='nearest')
+                                                    interpolation='nearest', cmap='jet')
         else:
             im = self.ax.imshow(sig, extent=(x[0], x[-1], y[0], y[-1]), aspect='auto', origin='lower',
-                           interpolation='nearest', vmin=vmin, vmax=vmax)
+                           interpolation='nearest', vmin=vmin, vmax=vmax, cmap='jet')
+        if keep_lims:
+            self.ax.set_xlim(xmin, xmax)
+            self.ax.set_ylim(ymin, ymax)
+
         self.fc.draw()
         if self.dataplotted == False:
             self.colorauto_cb.setEnabled(True)

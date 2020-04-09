@@ -1,6 +1,7 @@
 # _import_export.py
 
 import os, traceback, sys
+import h5py
 from glob import glob
 from PyQt5.QtWidgets import QFileDialog
 from matplotlib.ticker import FormatStrFormatter
@@ -13,39 +14,56 @@ import analysis_functions as af
 class Imp_Exp_Mixin:
 
     def import_tof(self, filename):
-        with open(filename, 'r') as file:
-            i = 0
-            data = []
-            try:
-                #data = [[float(digit) for digit in line.split()] for line in file]
-                for line in file:
-                    if i < cts.nb_lines_header:
-                        # skipping header lines
-                        pass
+        if cts.software_version != 2:
+            # on linux: with open(filename, 'r', encoding='utf-8',errors='ignore') as file:
+            with open(filename, 'r') as file:
+                i = 0
+                data = []
+                try:
+                    cts.path = filename
+                    #data = [[float(digit) for digit in line.split()] for line in file]
+                    for line in file:
+                        if i < cts.skiplines:
+                            # skipping header lines
+                            pass
+                        else:
+                            data.append([float(digit) for digit in line.split()])
+                        i += 1
+
+                    '''
+                    if cts.decimal_separ == 'dot':
+                        data = [[float(digit) for digit in line.split()] for line in file]
+                    elif cts.decimal_separ == 'comma':
+                        data = [[float(digit.replace(',', '.')) for digit in line.split()] for line in file]
                     else:
-                        data.append([float(digit) for digit in line.split()])
-                    i += 1
+                        print("Error in the code")'''
 
-                '''
-                if cts.decimal_separ == 'dot':
-                    data = [[float(digit) for digit in line.split()] for line in file]
-                elif cts.decimal_separ == 'comma':
+                except ValueError: #if the decimal separator is a comma
                     data = [[float(digit.replace(',', '.')) for digit in line.split()] for line in file]
-                else:
-                    print("Error in the code")'''
 
-            except ValueError: #if the decimal separator is a comma
-                data = [[float(digit.replace(',', '.')) for digit in line.split()] for line in file]
+                except IndexError:
+                    print('Incorrect data file')
+                    self.window().statusBar().showMessage('Incorrect data file')
 
-            except IndexError:
-                print('Incorrect data file')
-                self.window().statusBar().showMessage('Incorrect data file')
+                except Exception:
+                    print(traceback.format_exception(*sys.exc_info()))
 
-            except Exception:
-                print(traceback.format_exception(*sys.exc_info()))
+                finally:
+                    data_array = np.asarray(data)  # converting 1D list into 2D array
 
-            finally:
-                data_array = np.asarray(data)  # converting 1D list into 2D array
+        else:
+            spectrum_i = cts.spectrum_i
+
+            with h5py.File(filename, 'r') as file:
+                cts.path = filename
+                path = ''.join(['Scan',cts.str_scan_i,'/Detector000/Data1D/Ch000/'])
+                raw_datas = file['Raw_datas']
+                data_scan = np.array(raw_datas[path+'Data'])  # whole rabbit trace
+                data = data_scan[spectrum_i,cts.skiplines:]  # taking tof spectrum corresponding to asked index
+                tof = np.array(raw_datas[path+'X_axis'])[cts.skiplines:]
+                data_array = np.column_stack((tof, data))
+
+                self.window().updateglobvar_fn()
 
         return data_array
 
@@ -78,6 +96,8 @@ class Imp_Exp_Mixin:
                     # rabbit_win part
                     rabbit_tab.reset_btn()
                     rabbit_tab.importdata_btn.setEnabled(True)
+
+                    cts.calibloaded = True
 
                     self.window().updateglobvar_fn()
 
@@ -115,14 +135,29 @@ class Imp_Exp_Mixin:
 
     # called by RabbitWin
     def export_2w_lr(self):
-        ''' "[Export] 2w Ampl" button listener'''
+        ''' "[Export] 2w" button listener'''
         twow_fname = QFileDialog.getSaveFileName(self)
         twow_f = twow_fname[0]
         try:
             if (twow_f):
-                data_2w = np.dstack((self.energy, cts.FT_ampl[:,self.fpeak_index]/cts.FT_ampl.max()))[0]
+                data_2w = np.dstack((self.energy, cts.peak, cts.peak_phase, cts.rabbit_mat.sum(axis=0)))[0]
                 data_2w = np.array(data_2w)
-                np.savetxt((twow_f), data_2w, fmt='%.5e', delimiter='\t')
+                np.savetxt((twow_f), data_2w, fmt='%.5e', delimiter='\t',
+                           header="Photon energy [eV]\t 2w Ampl [arb. u.] \t 2w Phase [rad] \
+                            \t delay-integrated RABBIT trace")
+        except Exception:
+            print(traceback.format_exception(*sys.exc_info()))
+
+    def export_2w_std_lr(self):
+        ''' "[Export] 2w" button listener'''
+        twow_fname = QFileDialog.getSaveFileName(self)
+        twow_f = twow_fname[0]
+        try:
+            if (twow_f):
+                data_2w = np.dstack((cts.bands_vect[:,0],cts.bands_vect[:,1], cts.peak, cts.peak_phase, cts.phase_err))[0]
+                data_2w = np.array(data_2w)
+                np.savetxt((twow_f), data_2w, fmt='%.5e', delimiter='\t',
+                           header="Photon energy min[eV]\t Photon energy max[eV]\t 2w Ampl [arb. u.] \t 2w Phase [rad]\t 2w Phase error [rad]")
         except Exception:
             print(traceback.format_exception(*sys.exc_info()))
 

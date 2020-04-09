@@ -99,8 +99,30 @@ def find_local_maxima(d, thry, thrxmin, thrxmax, nbpts=2**12, smooth1=5, smooth2
 	return ipeak,dpeak,ds
 
 def tof2EeV(tof,a,t0,c):
-    """ Function to convert time of flight in Energy [eV]"""
+    """ Function to convert time of flight to sideband order"""
     return a/(tof-t0)**2 + c
+
+def tof2EeV2(tof):
+    """ Function to convert time of flight to energy"""
+    return (cts.afit/(tof - cts.t0fit) ** 2 + cts.cfit)*cts.HEV*cts.cur_nu
+
+def eeV2tof(E, pos=None):
+    """ Function to convert an energy value to an electron time of flight value"""
+    if E < cts.cfit*cts.HEV*cts.cur_nu:
+        E = (cts.cfit + 1e-6)*cts.HEV*cts.cur_nu # to prevent a negative element in the sqrt
+    t = np.sqrt(cts.afit/ (E/(cts.HEV*cts.cur_nu) - cts.cfit)) + cts.t0fit
+    return t
+
+def eeV2tof2(E, pos=None):
+    """ Function to convert an energy vector to an electron time of flight vector"""
+    for i, element in enumerate(E):
+        if element < cts.cfit*cts.HEV*cts.cur_nu:
+            E[i] = (cts.cfit + 1e-6)*cts.HEV*cts.cur_nu # to prevent a negative element in the sqrt
+    t = np.sqrt(cts.afit / (E/(cts.HEV*cts.cur_nu) - cts.cfit)) + cts.t0fit
+    return t
+
+def cosine(time, a, b, phi, f0):
+    return a*np.cos(2*np.pi*f0*time + phi) + b
 
 def jacobian_transform(tof, counts):
 
@@ -121,8 +143,9 @@ def jacobian_transform(tof, counts):
 #    EeV = a_fit/(tof-t0_fit)**2 + c_fit
 #    Ederiv = 2*a_fit/(tof-t0_fit)**3
 
+    nbsteps = (ehigh-elow)/dE + 1
 
-    eevlin = np.arange(elow,ehigh,step=dE)
+    eevlin = np.linspace(elow, ehigh, nbsteps)  # for non integer steps, np.linspace is better than np.arange
 
 
     dshape = counts.shape
@@ -154,8 +177,9 @@ def smooth(data,sm=2):
 
     ds=np.convolve(data,gaussian(2**nexp,sm)/gaussian(2**nexp,sm).sum(),mode='same')
     return ds
-#def tof_to_energy(fitfn,):
+
 def FFT(x_data, dt):
+     # modified by Dominique
 
      nu = cts.cur_nu
      zero_order = cts.FT_zero_order
@@ -163,70 +187,51 @@ def FFT(x_data, dt):
      padding = cts.FT_padding
      npad = cts.FT_npad
 
-     nu = nu*1e-15
+     # nu = nu*1e-15
 
      ##############
-     N = len(x_data) # number of vector points
-#
-     n = npad  # number of points for padding
-     pad = np.zeros(n)
+     Nsteps = len(x_data) # number of vector points
+
      # use only even number of points for the signal
-     if N % 2 == 0:
-         N = N
+     if Nsteps % 2 != 0:
+         Nsteps = Nsteps - 1
+         signal = x_data[1:]
      else:
-         N = N-1
-         x_data =  x_data[1:]
+         signal = x_data
 
-
-     # window for limiting spectral leakage and avoid sidelobes in fft amplitude
-     Hm = hamming(N)
-
-
-     signal =  x_data
      if zero_order == False:
          signal = signal - signal.mean()
 
      if window == True:
-         #print('Using Hamming window')
-         signal = signal*Hm
-     else:
-         signal = signal
+         # window for limiting spectral leakage and avoid sidelobes in fft amplitude
+         Hm = hamming(Nsteps)
+         signal = signal * Hm
 
      if padding == True:
-         signal = signal
-         ###### NAL 000 SIG ###
-         pad[:N//2] = signal[N//2:]
-         pad[-N//2:] = signal[:N//2]
-         ###### 000 SIGNAL 000 ###
-         	# a = n - N
-         	# pad[a//2:-a//2] = F1
-         signal=pad
-         fourier = np.fft.fft(signal)
-         fourier = fourier[:n//2]
-
-         freq = np.fft.fftfreq(n, d=dt)
-         freqpos = freq[:n//2]
-         freqnorm = freqpos/nu
+         n = npad  # number of points for padding
+         pad = np.zeros(n)
+         """pad[:N//2] = signal[N//2:]
+         pad[-N//2:] = signal[:N//2]""" # Margherita's way
+         pad[:Nsteps] = signal[:Nsteps]
+         signal = pad
+         N = npad
      else:
-         signal = signal
+         N = Nsteps
 
-         fourier = np.fft.fft(signal)
-         fourier = fourier[:N//2]
+     cts.FT_N = N
+     cts.FT_Nsteps = Nsteps
 
-         freq = np.fft.fftfreq(N, d=dt)
-         freqpos = freq[:N//2]
-         freqnorm = freqpos/nu
+     fourier = np.fft.fft(signal)
+     fourier = fourier[:N // 2]
+     freq = np.fft.fftfreq(N, d=dt)
+     freqpos = freq[:N // 2]
+     freqnorm = freqpos/nu
 
-     ampl= abs(fourier)
+     ampl = np.abs(fourier)
+     ang = np.angle(fourier)
+     ang = wrap2pmpi(ang)
 
-
-     phicorr = -np.pi*freqpos*dt
-
-     ang = np.angle(fourier) + phicorr
-     ang=wrap2pmpi(ang)
-
-
-     return freqnorm,ampl,ang
+     return freqnorm, ampl, ang
 
 def wrap2pmpi(phasedata):
     """It wraps phase from -pi, pi"""
@@ -249,34 +254,33 @@ def butter_bandpass(lowcut, highcut, fs, n, order=5):
     w, h = freqz(b,a,worN = n)
     return w, h
 
-
-
-def find_2w(x_data, dt):
+def find_2w(x_data, dt, freqnorm, ampl, ang):
 
     nu = cts.cur_nu
     average = cts.two_w_average
     bfilter = cts.two_w_bfilter
     integral = cts.two_w_integral
     phi_offset = cts.two_w_phioffset
-   ###### Sampling frequency and bandwidth for the butter bandpass filter ########
-    fs = 1/dt/nu*1e15
+
+    ###### Sampling frequency and bandwidth for the butter bandpass filter ########
+    fs = 1/dt/nu
     BW = 1.2
-     ##############
-#
+    ##############
+
     N = len(x_data)
 
-#### real frequency step of fft(signal)######
-    dfreal = 1/(dt*N)/nu*1e15
+    #### real frequency step of fft(signal)######
+    dfreal = 1/(dt*N)/nu
 
-    freqnorm,ampl,ang=FFT(x_data,dt)
-       ####### find index corresponding to the 2-omega peak #########
+    # freqnorm,ampl,ang=FFT(x_data,dt)
+    ####### find index corresponding to the 2-omega peak #########
     pk_indeces = np.where(abs(freqnorm - 2) < 0.5)[0]
 
     peak_index = np.argmax(ampl[pk_indeces])
     peak_index_good = pk_indeces[peak_index]
     fpeak = freqnorm[peak_index_good]
     #ifmin=ifmax=0
-     ########### filtered fft ############
+    ########### filtered fft ############
     if bfilter == True and average == False:
         #print('Using bandpass filter around 2omega')
         lowcut = fpeak - BW/2.
@@ -286,16 +290,16 @@ def find_2w(x_data, dt):
         n=len(freqnorm)
         w, h = butter_bandpass(lowcut,highcut, fs, n, 5)
         ampl_flt = ampl*h
-#             power_spectrum = abs(fourier_flt)**2
+        # power_spectrum = abs(fourier_flt)**2
 
         ang_flt = ang + phi_offset
-#             ang_flt = np.unwrap(ang_flt)
+        # ang_flt = np.unwrap(ang_flt)
         peak_phase = ang_flt[peak_index_good]
         peak = ampl_flt[peak_index_good]
 
     elif bfilter == False and average == True:
-        #print('Averaging phase over the real frequency step')
-#     ########### average phase over dfreal #########
+        # print('Averaging phase over the real frequency step')
+        ########### average phase over dfreal #########
         fmin = fpeak - dfreal/2
         fmax = fpeak + dfreal/2
         ifmin = np.argmin(abs(freqnorm-fmin))
@@ -307,6 +311,7 @@ def find_2w(x_data, dt):
         else:
            peak = ampl[ifmin]
            peak_phase = 	ang[ifmin] + phi_offset
+
     elif bfilter == True and average == True:
         #print('Using bandpass filter and averaging over the real frequency step')
         lowcut = fpeak - BW/2.
@@ -331,17 +336,21 @@ def find_2w(x_data, dt):
         peak_phase = ang[peak_index_good] + phi_offset
 
     if integral == True and average == True:
-        print('Error! either average or integral, not both!')
+        print('Error! Either average or integral, not both!')
     elif integral == True and bfilter == True:
         fourier_flt = ampl_flt*np.exp(1j*ang_flt)
         fourier_flt_int = np.trapz(fourier_flt,freqnorm)
         peak_phase = np.angle(fourier_flt_int) + phi_offset
         peak = abs(fourier_flt_int)
 
-    #print(ifmin,ifmax)
-    #print(fpeak,peak,peak_phase)
+    l = ampl.shape[0]
 
-    return fpeak,peak,peak_phase
+    # see Q:\LIDyL\Atto\ATTOLAB\SE1\Analyse_RABBIT\rabbitII_Analysis_TR.pdf
+    SNRTR = peak/np.sqrt((ampl[l//2:]**2).mean()*l)
+    # SNRTR = peak/np.sqrt(ampl[l//2:].mean()**2*l) Margherita's
+    pperrTR = (0.03421*2048+19.26)/(2048+57.47)/SNRTR
+
+    return fpeak,peak,peak_phase,pperrTR
 
 
 
